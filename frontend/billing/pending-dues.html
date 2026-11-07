@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pending Dues — AWS Hospital</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="bg-3d"></div>
+  <div class="grid-floor"></div>
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content fade-in">
+      <div class="page-header">
+        <h1>⚠️ Pending Dues</h1>
+        <a href="payment.html" class="btn btn-primary">💳 Record Payment</a>
+      </div>
+
+      <div class="stat-grid">
+        <div class="glass stat-card gradient-orange">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value" id="totalDues">₹0</div>
+          <div class="stat-label">Total Outstanding</div>
+        </div>
+      </div>
+
+      <div class="glass table-wrapper">
+        <table>
+          <thead><tr><th>Bill ID</th><th>Patient</th><th>Description</th><th>Net Amount</th><th>Due Amount</th><th>Bill Date</th></tr></thead>
+          <tbody id="duesTableBody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/billing.js"></script>
+  <script>fetch("../sidebar.html").then(r=>r.text()).then(h=>{document.getElementById("sidebar").innerHTML=h;});</script>
+</body>
+</html>

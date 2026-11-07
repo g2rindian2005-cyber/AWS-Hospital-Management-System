@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disease History — AWS Hospital</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="bg-3d"></div>
+  <div class="grid-floor"></div>
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content fade-in">
+      <div class="page-header">
+        <h1>📁 Disease History</h1>
+        <a href="add-disease.html" class="btn btn-primary">➕ Add Disease</a>
+      </div>
+
+      <div class="glass table-wrapper">
+        <table>
+          <thead><tr><th>ID</th><th>Patient</th><th>Disease</th><th>Severity</th><th>Status</th><th>Diagnosed</th></tr></thead>
+          <tbody id="diseasesTableBody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/diseases.js"></script>
+  <script>fetch("../sidebar.html").then(r=>r.text()).then(h=>{document.getElementById("sidebar").innerHTML=h;});</script>
+</body>
+</html>

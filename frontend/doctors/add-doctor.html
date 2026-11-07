@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Doctor — AWS Hospital</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="bg-3d"></div>
+  <div class="grid-floor"></div>
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content fade-in">
+      <div class="page-header">
+        <h1>👨‍⚕️ Add Doctor</h1>
+        <a href="assign-doctor.html" class="btn btn-outline">Assign to Patient</a>
+      </div>
+
+      <div class="glass" style="padding:32px;max-width:700px;margin-bottom:24px;">
+        <form id="addDoctorForm">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
+            <div class="input-group">
+              <label>First Name *</label>
+              <input type="text" name="first_name" placeholder="Dr. Anil" required>
+            </div>
+            <div class="input-group">
+              <label>Last Name *</label>
+              <input type="text" name="last_name" placeholder="Gupta" required>
+            </div>
+            <div class="input-group">
+              <label>Specialization *</label>
+              <input type="text" name="specialization" placeholder="Cardiologist" required>
+            </div>
+            <div class="input-group">
+              <label>Department</label>
+              <input type="text" name="department" placeholder="Cardiology">
+            </div>
+            <div class="input-group">
+              <label>Phone</label>
+              <input type="tel" name="phone" placeholder="9000012345">
+            </div>
+            <div class="input-group">
+              <label>Email</label>
+              <input type="email" name="email" placeholder="doctor@hospital.com">
+            </div>
+            <div class="input-group">
+              <label>License Number</label>
+              <input type="text" name="license_number" placeholder="MED-XXX">
+            </div>
+            <div class="input-group">
+              <label>Consultation Fee (₹)</label>
+              <input type="number" step="0.01" name="consultation_fee" placeholder="800" value="0">
+            </div>
+            <div class="input-group" style="grid-column:1/3;">
+              <label>Availability</label>
+              <select name="availability">
+                <option value="Available">Available</option>
+                <option value="Busy">Busy</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Off Duty">Off Duty</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">💾 Add Doctor</button>
+        </form>
+      </div>
+
+      <div class="glass table-wrapper">
+        <h3 style="color:#fff;margin-bottom:16px;">📋 All Doctors</h3>
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Specialization</th><th>Department</th><th>Phone</th><th>Availability</th></tr></thead>
+          <tbody id="doctorsTableBody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/doctors.js"></script>
+  <script>fetch("../sidebar.html").then(r=>r.text()).then(h=>{document.getElementById("sidebar").innerHTML=h;});</script>
+</body>
+</html>

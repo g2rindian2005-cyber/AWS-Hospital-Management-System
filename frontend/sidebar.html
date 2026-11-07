@@ -1,0 +1,43 @@
+<!-- Shared sidebar for sub-pages (one level deep). Links use ../ prefix. -->
+<!-- Active state is highlighted by the small script at the bottom. -->
+<div class="sidebar-logo">
+  <h2>🏥 <span>AWS</span> Hospital</h2>
+</div>
+<nav class="nav-section">
+  <div class="nav-section-title">Main</div>
+  <a href="../dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">📊</span> Dashboard</a>
+</nav>
+<nav class="nav-section">
+  <div class="nav-section-title">Patients</div>
+  <a href="../patients/add-patient.html"    class="nav-item" data-page="add-patient"><span class="nav-icon">➕</span> Add Patient</a>
+  <a href="../patients/view-patient.html"   class="nav-item" data-page="view-patient"><span class="nav-icon">👥</span> View Patients</a>
+  <a href="../patients/patient-history.html"class="nav-item" data-page="patient-history"><span class="nav-icon">📋</span> Patient History</a>
+</nav>
+<nav class="nav-section">
+  <div class="nav-section-title">Billing</div>
+  <a href="../billing/create-bill.html"    class="nav-item" data-page="create-bill"><span class="nav-icon">📝</span> Create Bill</a>
+  <a href="../billing/payment.html"        class="nav-item" data-page="payment"><span class="nav-icon">💳</span> Payments</a>
+  <a href="../billing/pending-dues.html"   class="nav-item" data-page="pending-dues"><span class="nav-icon">⚠️</span> Pending Dues</a>
+</nav>
+<nav class="nav-section">
+  <div class="nav-section-title">Diseases</div>
+  <a href="../diseases/add-disease.html"    class="nav-item" data-page="add-disease"><span class="nav-icon">🩺</span> Add Disease</a>
+  <a href="../diseases/disease-history.html" class="nav-item" data-page="disease-history"><span class="nav-icon">📁</span> Disease History</a>
+</nav>
+<nav class="nav-section">
+  <div class="nav-section-title">Doctors</div>
+  <a href="../doctors/add-doctor.html"      class="nav-item" data-page="add-doctor"><span class="nav-icon">👨‍⚕️</span> Add Doctor</a>
+  <a href="../doctors/assign-doctor.html"   class="nav-item" data-page="assign-doctor"><span class="nav-icon">🔗</span> Assign Doctor</a>
+  <a href="../doctors/appointments.html"    class="nav-item" data-page="appointments"><span class="nav-icon">📅</span> Appointments</a>
+</nav>
+<nav class="nav-section" style="margin-top:24px;">
+  <a href="../login.html" onclick="localStorage.removeItem('hms_token')" class="nav-item"><span class="nav-icon">🚪</span> Logout</a>
+</nav>
+<script>
+  (function(){
+    var path = location.pathname.split("/").pop().replace(".html","");
+    document.querySelectorAll(".nav-item[data-page]").forEach(function(a){
+      if(a.getAttribute("data-page") === path) a.classList.add("active");
+    });
+  })();
+</script>

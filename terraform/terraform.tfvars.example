@@ -1,0 +1,23 @@
+# ============================================================
+# Copy to terraform.tfvars and fill in your values
+# terraform apply -var-file=terraform.tfvars
+# ============================================================
+
+aws_region   = "us-east-1"
+project_name = "hospital"
+environment  = "prod"
+
+# ---- RDS ----
+db_instance_class    = "db.t3.micro"
+db_allocated_storage = 20
+db_username          = "admin"
+db_password          = "ChangeMeStrongPass123!"   # CHANGE THIS
+
+# ---- EC2 ----
+ec2_instance_type = "t3.micro"
+ssh_key_name      = "hospital-key"   # create this key pair in AWS first
+
+# ---- SES SMTP (from SES > SMTP Settings > Create My SMTP Credentials) ----
+ses_smtp_username = "AKIAXXXXXXXXXXXXXXXX"
+ses_smtp_password  = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+ses_from_email     = "noreply@yourdomain.com"   # verify this address in SES
