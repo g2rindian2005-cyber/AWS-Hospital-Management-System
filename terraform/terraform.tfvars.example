@@ -11,13 +11,13 @@ environment  = "prod"
 db_instance_class    = "db.t3.micro"
 db_allocated_storage = 20
 db_username          = "admin"
-db_password          = "ChangeMeStrongPass123!"   # CHANGE THIS
+db_password          = "9356782322"   # CHANGE THIS
 
 # ---- EC2 ----
 ec2_instance_type = "t3.micro"
 ssh_key_name      = "hospital-key"   # create this key pair in AWS first
 
 # ---- SES SMTP (from SES > SMTP Settings > Create My SMTP Credentials) ----
-ses_smtp_username = "AKIAXXXXXXXXXXXXXXXX"
-ses_smtp_password  = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-ses_from_email     = "noreply@yourdomain.com"   # verify this address in SES
+ses_smtp_username = "gr0735618@gmail.com"
+ses_smtp_password  = "lfig uqki cyov wgty"
+ses_from_email     = "gr0735618@gmail.com"   # verify this address in SES
