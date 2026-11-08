@@ -47,7 +47,7 @@ SMTP_HOST        = _env("SMTP_HOST", "email-smtp.us-east-1.amazonaws.com")
 SMTP_PORT        = int(_env("SMTP_PORT", "587"))
 SMTP_USERNAME    = _env("SMTP_USERNAME", "")   # SES SMTP credentials IAM user
 SMTP_PASSWORD    = _env("SMTP_PASSWORD", "")   # SES SMTP password
-SMTP_FROM_EMAIL  = _env("SMTP_FROM_EMAIL", "noreply@hospital.com")
+SMTP_FROM_EMAIL  = _env("SMTP_FROM_EMAIL", "gr0735618@gmail.com")
 SMTP_USE_TLS     = _env("SMTP_USE_TLS", "true").lower() == "true"
 
 # ------------------------------------------------------------------
