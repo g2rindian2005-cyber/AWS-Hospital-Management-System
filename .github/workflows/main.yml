@@ -202,7 +202,7 @@ jobs:
             --description "GitHub Actions $GITHUB_SHA" \
             --zip-file "fileb://dist/layer/deps-layer.zip" \
             --compatible-runtimes python3.11 \
-            --query VersionArn --output text)
+            --query LayerVersionArn --output text)
           echo "Published dependency layer: $layer_arn"
 
           for service in patient billing disease doctor auth; do
