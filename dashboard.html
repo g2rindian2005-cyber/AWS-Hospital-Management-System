@@ -6,7 +6,7 @@
   <title>Dashboard — MediCore HMS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
 
@@ -546,6 +546,14 @@
       .from('.grid-2 .card, .responsive-grid-3 .card, .page-content > .card', { y: 24, opacity: 0, duration: 0.5, stagger: 0.08, clearProps: 'transform' }, '-=0.25');
     /* Slow Ken Burns drift on the hero photo */
     gsap.to('.hero-banner-img', { scale: 1.09, duration: 22, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    /* Safety net: whatever happens to the timeline, no dashboard element
+       may stay stuck in a hidden 'from' state. */
+    const safetyClear = () => {
+      document.querySelectorAll('#sidebar, #topbar, .page-header, .hero-banner, .stat-card, .quick-action-btn, .grid-2 .card, .responsive-grid-3 .card, .page-content > .card')
+        .forEach(el => { try { gsap.killTweensOf(el); gsap.set(el, { clearProps: 'opacity,transform' }); } catch (e) { el.style.opacity = ''; el.style.transform = ''; } });
+    };
+    setTimeout(safetyClear, 2200);
+    setTimeout(safetyClear, 4000);
   } catch (e) { /* entrance animation is decorative */ }
 
   /* Animated counters — watch each stat value; when real data replaces
