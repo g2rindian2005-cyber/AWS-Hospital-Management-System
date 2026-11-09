@@ -599,3 +599,11 @@ resource "aws_instance" "frontend_ec2" {
   user_data              = file("../aws/ec2/install-nginx.sh")
   tags                   = merge(local.tags, { Name = "${var.project_name}-frontend-ec2" })
 }
+
+# Stable public address for the EC2 mirror: without this, every instance
+# replacement changes the IP (it changed twice during the first deploy).
+resource "aws_eip" "frontend" {
+  instance = aws_instance.frontend_ec2.id
+  domain   = "vpc"
+  tags     = merge(local.tags, { Name = "${var.project_name}-frontend-eip" })
+}

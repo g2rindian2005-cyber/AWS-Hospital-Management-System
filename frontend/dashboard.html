@@ -292,6 +292,7 @@
 </div><!-- /app-layout -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/api.js"></script>
 <script>
@@ -508,6 +509,83 @@
         </tr>`).join('')
       || `<tr><td colspan="8"><div class="empty-state"><p>No assignments</p></div></td></tr>`;
   })();
+</script>
+
+<script>
+/* ── GSAP motion layer (progressive enhancement — the dashboard works
+      identically without it; everything below is guarded) ───────────── */
+(function () {
+  if (!window.gsap) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  /* Entrance choreography */
+  try {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl.from('#sidebar', { x: -28, opacity: 0, duration: 0.55 })
+      .from('#topbar', { y: -14, opacity: 0, duration: 0.45 }, '-=0.30')
+      .from('.page-header', { y: 18, opacity: 0, duration: 0.5 }, '-=0.25')
+      .from('.stat-card', { y: 30, opacity: 0, duration: 0.55, stagger: 0.07, clearProps: 'transform' }, '-=0.20')
+      .from('.quick-action-btn', { y: 16, opacity: 0, duration: 0.4, stagger: 0.05, clearProps: 'transform' }, '-=0.30')
+      .from('.grid-2 .card, .responsive-grid-3 .card, .page-content > .card', { y: 24, opacity: 0, duration: 0.5, stagger: 0.08, clearProps: 'transform' }, '-=0.25');
+  } catch (e) { /* entrance animation is decorative */ }
+
+  /* Animated counters — watch each stat value; when real data replaces
+     the '—' placeholder, count up from 0 with matching formatting. */
+  function animateValue(el) {
+    const finalText = el.textContent.trim();
+    const target = parseFloat(finalText.replace(/[^0-9.]/g, ''));
+    if (!isFinite(target)) return;
+    const isMoney = finalText.indexOf('₹') !== -1;
+    const proxy = { v: 0 };
+    gsap.to(proxy, {
+      v: target, duration: 1.4, ease: 'power2.out',
+      onUpdate() {
+        const n = Math.round(proxy.v).toLocaleString('en-IN');
+        el.textContent = isMoney ? '₹' + n : n;
+      },
+      onComplete() { el.textContent = finalText; }
+    });
+  }
+  document.querySelectorAll('.stat-value').forEach(el => {
+    if (el.textContent.trim() !== '—') { animateValue(el); return; }
+    const mo = new MutationObserver(() => {
+      if (el.textContent.trim() !== '—') { mo.disconnect(); animateValue(el); }
+    });
+    mo.observe(el, { childList: true, characterData: true, subtree: true });
+    setTimeout(() => mo.disconnect(), 15000);
+  });
+
+  /* Stagger in list / table content as real data renders */
+  function watchContainer(id, childSelector) {
+    const box = document.getElementById(id);
+    if (!box) return;
+    const mo = new MutationObserver(() => {
+      const kids = box.querySelectorAll(childSelector);
+      if (kids.length) {
+        mo.disconnect();
+        gsap.from(kids, { opacity: 0, x: -14, duration: 0.45, stagger: 0.05, ease: 'power2.out', clearProps: 'all' });
+      }
+    });
+    mo.observe(box, { childList: true });
+    setTimeout(() => mo.disconnect(), 15000);
+  }
+  watchContainer('recentPatientsList', '.recent-item');
+  watchContainer('doctorsList', '.doctor-card');
+  watchContainer('notifList', '.notification-item');
+  watchContainer('recentBillsTable', 'tr');
+  watchContainer('assignmentsTable', 'tr');
+
+  /* Hover micro-interactions */
+  document.querySelectorAll('.stat-card, .quick-action-btn').forEach(card => {
+    card.addEventListener('mouseenter', () => gsap.to(card, { y: -4, scale: 1.02, duration: 0.25, ease: 'power2.out' }));
+    card.addEventListener('mouseleave', () => gsap.to(card, { y: 0, scale: 1, duration: 0.3, ease: 'power2.out' }));
+  });
+  document.querySelectorAll('.stat-icon-wrap').forEach(icon => {
+    const card = icon.closest('.stat-card');
+    if (!card) return;
+    card.addEventListener('mouseenter', () => gsap.fromTo(icon, { rotate: 0 }, { rotate: 8, duration: 0.3, yoyo: true, repeat: 1, ease: 'power1.inOut' }));
+  });
+})();
 </script>
 
 <style>
