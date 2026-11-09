@@ -53,6 +53,23 @@ def _json(status, payload):
 def lambda_handler(event, context):
     method = event.get("httpMethod", "GET")
     resource = event.get("resource", event.get("path", ""))
+    # Shim: terraform routes child paths via {proxy+}, so translate the
+    # concrete path back to the route templates matched below.
+    _seg = [s for s in (event.get("path") or "").split("/") if s]
+    _ppx = dict(event.get("pathParameters") or {})
+    if len(_seg) == 2 and _seg[0] == "doctors":
+        _ppx["doctor_id"] = _seg[1]
+        resource = "/doctors/{doctor_id}"
+    elif len(_seg) == 3 and _seg[0] == "assignments" and _seg[1] == "doctor":
+        _ppx["doctor_id"] = _seg[2]
+        resource = "/assignments/doctor/{doctor_id}"
+    elif len(_seg) == 3 and _seg[0] == "assignments" and _seg[1] == "patient":
+        _ppx["patient_id"] = _seg[2]
+        resource = "/assignments/patient/{patient_id}"
+    elif len(_seg) == 2 and _seg[0] == "assignments":
+        _ppx["assignment_id"] = _seg[1]
+        resource = "/assignments/{assignment_id}"
+    event["pathParameters"] = _ppx
 
     if method == "OPTIONS":
         return _json(200, {"message": "OK"})
