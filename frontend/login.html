@@ -110,10 +110,6 @@
         </button>
       </form>
 
-      <div class="login-demo-note" id="demoNote" style="display:none;">
-        <strong>Demo credentials:</strong> username <code>admin</code> &nbsp;/&nbsp; password <code>admin123</code>
-      </div>
-
       <p style="text-align:center; margin-top:20px; font-size:12px; color:#9ca3af;">
         © 2026 MediCore Hospital Management System. All rights reserved.
       </p>
@@ -137,11 +133,7 @@
 </script>
 <script src="js/api.js"></script>
 <script>
-  /* Demo credentials are only ever shown in explicit demo mode. */
-  if (window.HMS_CONFIG?.demoMode === true) {
-    const _dn = document.getElementById('demoNote');
-    if (_dn) _dn.style.display = '';
-  }
+  /* Login is JWT-only; the demo credentials note is never shown. */
   /* Show/hide password */
   const pwdInput = document.getElementById('password');
   document.getElementById('togglePassword').addEventListener('click', function() {
@@ -202,8 +194,9 @@
       setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
     };
 
-    /* 1) Real JWT auth first — POST /auth/login via AuthAPI. */
-    const demoMode = window.HMS_CONFIG?.demoMode === true;
+    /* JWT authentication — POST /auth/login via AuthAPI is the ONLY way in.
+       The auth Lambda verifies the credentials and returns a signed JWT;
+       no demo/local shortcut exists on this page anymore. */
     let authData = null;
     try {
       if (typeof AuthAPI !== 'undefined') authData = await AuthAPI.login(u, p);
@@ -215,17 +208,9 @@
       return;
     }
 
-    /* 2) Demo fallback — only when demo mode is explicitly enabled in config.
-          Covers both "demoMode on" and "auth endpoint unreachable while in demo config". */
-    if (demoMode && (u === 'admin' || u === 'admin@hospital.com') && p === 'admin123') {
-      finishLogin('demo-token-' + Date.now(), u);
-      return;
-    }
-
     resetBtn();
     showToast(
-      demoMode ? 'Invalid username or password. Please try again.'
-               : 'Authentication failed. Please check your credentials or contact your administrator.',
+      'Invalid username or password. Please try again.',
       'error', 'Authentication Failed');
   });
 
