@@ -93,3 +93,5 @@ This job needs two extra repository secrets:
 | `DOCKERHUB_TOKEN` | A Docker Hub access token (Docker Hub → Account settings → Personal access tokens → New access token, Read & Write) |
 
 - Docker Hub secrets configured; the pipeline now also publishes `jawandockerhub/medicore-hospital` on each run.
+
+- A backend image (`Dockerfile.backend` + `backend/local_server.py`) and a full local stack (`docker-compose.yml`: MySQL + backend + frontend) were added; the pipeline docker job also publishes `jawandockerhub/medicore-hospital-backend`.
