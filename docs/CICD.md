@@ -70,3 +70,7 @@ Without `EC2_SSH_KEY`, the workflow still deploys Lambda and S3 successfully and
 ## Terraform note
 
 The workflow validates Terraform but does **not** run `terraform apply`. The current Terraform state is not stored in GitHub, so an Actions runner cannot safely apply infrastructure changes against the existing AWS account yet. Application code deployment (Lambda + frontend) is automated; infrastructure changes should be applied from a machine or pipeline that has access to the real Terraform state/backend.
+
+## Status
+
+- 2026-11-09: AWS deployment secrets configured in GitHub. Pushes to `main` now run the full pipeline, including deployment.
