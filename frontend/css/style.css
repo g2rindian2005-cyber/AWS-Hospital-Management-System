@@ -1657,3 +1657,80 @@ textarea.form-control { resize: vertical; min-height: 90px; line-height: 1.5; }
 .severity-track {
   min-width: 40px;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   REDESIGN v2 ADDITIONS — sidebar collapse, reports/settings,
+   dashboard list skeletons. Appended only; the design system
+   above (Inter, white, blue #2563eb / teal #0d9488) is unchanged.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar collapse toggle (desktop) ─────────────────────── */
+.sidebar-collapse-btn {
+  margin-left: auto;
+  width: 28px; height: 28px;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray-500);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.sidebar-collapse-btn:hover { background: var(--gray-100); color: var(--gray-800); }
+.sidebar-collapse-btn svg { transition: transform var(--transition-md); }
+body.sidebar-collapsed .sidebar-collapse-btn svg { transform: rotate(180deg); }
+
+/* Collapsed sidebar: icon rail */
+body.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+body.sidebar-collapsed .main-content { margin-left: var(--sidebar-collapsed); }
+body.sidebar-collapsed .topbar { left: var(--sidebar-collapsed); }
+body.sidebar-collapsed .sidebar-brand-name,
+body.sidebar-collapsed .nav-group-label,
+body.sidebar-collapsed .sidebar-user-info,
+body.sidebar-collapsed .sidebar .nav-item { font-size: 0; }
+body.sidebar-collapsed .sidebar-header { padding: 0 10px; justify-content: center; flex-wrap: wrap; height: auto; padding-top: 10px; padding-bottom: 10px; }
+body.sidebar-collapsed .sidebar-collapse-btn { margin-left: 0; }
+body.sidebar-collapsed .sidebar .nav-item { justify-content: center; padding: 10px 0; gap: 0; }
+body.sidebar-collapsed .sidebar .nav-item .nav-icon { width: 22px; height: 22px; }
+body.sidebar-collapsed .sidebar-user { justify-content: center; padding: 8px 0; }
+body.sidebar-collapsed .sidebar-footer { padding: 8px; }
+@media (max-width: 900px) {
+  .sidebar-collapse-btn { display: none; }
+  body.sidebar-collapsed .sidebar { width: var(--sidebar-width); }
+  body.sidebar-collapsed .main-content { margin-left: 0; }
+  body.sidebar-collapsed .topbar { left: 0; }
+  body.sidebar-collapsed .sidebar-brand-name,
+  body.sidebar-collapsed .nav-group-label,
+  body.sidebar-collapsed .sidebar-user-info { display: block; }
+  body.sidebar-collapsed .sidebar .nav-item { font-size: 13.5px; justify-content: flex-start; padding: 9px 12px; gap: 10px; }
+}
+
+/* ── Dashboard / reports list skeletons ────────────────────── */
+.list-skeleton { padding: 14px 0; }
+.list-skeleton .skeleton-row { margin-bottom: 10px; }
+.skeleton-card { padding: 18px 22px; }
+.skeleton-line { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.skeleton-circle { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Reports page ──────────────────────────────────────────── */
+.reports-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+@media (max-width: 900px) { .reports-grid { grid-template-columns: 1fr; } }
+.summary-table td:first-child { color: var(--gray-500); }
+.summary-table td:last-child { font-weight: 600; text-align: right; }
+@media print {
+  .reports-print-area .btn, .reports-print-area .page-header-actions { display: none !important; }
+}
+
+/* ── Settings page ─────────────────────────────────────────── */
+.settings-card { max-width: 720px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--gray-100); }
+.settings-row:last-child { border-bottom: none; }
+.settings-row-text h4 { font-size: 14px; font-weight: 600; color: var(--gray-800); margin-bottom: 2px; }
+.settings-row-text p { font-size: 12.5px; color: var(--gray-500); line-height: 1.5; }
+.switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider { position: absolute; inset: 0; background: var(--gray-300); border-radius: 99px; cursor: pointer; transition: var(--transition); }
+.switch .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: var(--transition); box-shadow: var(--shadow-sm); }
+.switch input:checked + .slider { background: var(--blue-600); }
+.switch input:checked + .slider::before { transform: translateX(18px); }

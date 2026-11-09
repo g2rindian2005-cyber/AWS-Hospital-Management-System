@@ -22,6 +22,9 @@ function buildSidebarHTML() {
     </svg>
   </div>
   <span class="sidebar-brand-name">Medi<span>Core</span> HMS</span>
+  <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse sidebar" aria-label="Collapse sidebar">
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+  </button>
 </div>
 
 <nav class="sidebar-nav">
@@ -166,6 +169,30 @@ function buildSidebarHTML() {
       Appointments
     </a>
   </div>
+  <div class="nav-group">
+    <span class="nav-group-label">System</span>
+    <a href="${p}reports.html" class="nav-item" data-page="reports">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/>
+          <line x1="10" x2="10" y1="18" y2="6"/><line x1="14" x2="14" y1="18" y2="10"/>
+          <line x1="18" x2="18" y1="18" y2="3"/>
+        </svg>
+      </span>
+      Reports
+    </a>
+    <a href="${p}settings.html" class="nav-item" data-page="settings">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </span>
+      Settings
+    </a>
+  </div>
 </nav>
 
 <div class="sidebar-footer">
@@ -216,7 +243,7 @@ function buildTopbar(title, subtitle) {
       </svg>
       <span class="dot"></span>
     </button>
-    <button class="topbar-btn" title="Settings">
+    <button class="topbar-btn" id="topbarSettingsBtn" title="Settings">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -231,7 +258,7 @@ function initApp(opts = {}) {
   const { page = '', title = 'Dashboard', subtitle = '' } = opts;
 
   /* Auth guard */
-  if (!localStorage.getItem('hms_token')) {
+  if (!localStorage.getItem('hms_token') && !sessionStorage.getItem('hms_token')) {
     window.location.href = resolveRoot('login.html');
     return;
   }
@@ -274,7 +301,7 @@ function initApp(opts = {}) {
   if (active) active.classList.add('active');
 
   /* User display */
-  const u = localStorage.getItem('hms_user') || 'Admin';
+  const u = localStorage.getItem('hms_user') || sessionStorage.getItem('hms_user') || 'Admin';
   const el = document.getElementById('sidebarUserName');
   if (el) el.textContent = u;
   const av = document.getElementById('sidebarUserAvatar');
@@ -284,6 +311,8 @@ function initApp(opts = {}) {
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
     localStorage.removeItem('hms_token');
     localStorage.removeItem('hms_user');
+    sessionStorage.removeItem('hms_token');
+    sessionStorage.removeItem('hms_user');
   });
 
   /* Mobile toggle */
@@ -294,6 +323,25 @@ function initApp(opts = {}) {
   overlay.addEventListener('click', () => {
     sidebar.classList.remove('open');
     overlay.classList.remove('show');
+  });
+
+  /* Desktop sidebar collapse (persisted) */
+  const applyCollapsed = (c) => {
+    document.body.classList.toggle('sidebar-collapsed', c);
+    sidebar.classList.toggle('collapsed', c);
+  };
+  let collapsed = false;
+  try { collapsed = localStorage.getItem('hms_sidebar_collapsed') === '1'; } catch (e) {}
+  applyCollapsed(collapsed);
+  document.getElementById('sidebarCollapseBtn')?.addEventListener('click', () => {
+    collapsed = !collapsed;
+    applyCollapsed(collapsed);
+    try { localStorage.setItem('hms_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+  });
+
+  /* Topbar settings shortcut */
+  document.getElementById('topbarSettingsBtn')?.addEventListener('click', () => {
+    window.location.href = resolveRoot('settings.html');
   });
 
   /* Date */
@@ -453,9 +501,6 @@ function buildPagination(container, total, page, perPage, onPage) {
       html += `<span class="page-btn" style="pointer-events:none">…</span>`;
   }
   html += `<button class="page-btn" ${page===pages?'disabled':''} onclick="${cbKey}(${page+1})">›</button>`;
-  html += '</div>';
-  container.innerHTML = html;
-}
   html += '</div>';
   container.innerHTML = html;
 }

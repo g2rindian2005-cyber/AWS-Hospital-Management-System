@@ -110,7 +110,7 @@
         </button>
       </form>
 
-      <div class="login-demo-note">
+      <div class="login-demo-note" id="demoNote" style="display:none;">
         <strong>Demo credentials:</strong> username <code>admin</code> &nbsp;/&nbsp; password <code>admin123</code>
       </div>
 
@@ -126,6 +126,22 @@
 
 <script src="js/ui.js"></script>
 <script>
+  /* Build HMS_CONFIG from locally stored preferences (set on the Settings page). */
+  window.HMS_CONFIG = window.HMS_CONFIG || {};
+  try {
+    const _apiBase = localStorage.getItem('hms_api_base');
+    if (_apiBase) window.HMS_CONFIG.apiBase = _apiBase;
+    if (localStorage.getItem('hms_demo_mode') === '1') window.HMS_CONFIG.demoMode = true;
+    if (localStorage.getItem('hms_dev_mock') === '1') window.HMS_CONFIG.devMock = true;
+  } catch (e) {}
+</script>
+<script src="js/api.js"></script>
+<script>
+  /* Demo credentials are only ever shown in explicit demo mode. */
+  if (window.HMS_CONFIG?.demoMode === true) {
+    const _dn = document.getElementById('demoNote');
+    if (_dn) _dn.style.display = '';
+  }
   /* Show/hide password */
   const pwdInput = document.getElementById('password');
   document.getElementById('togglePassword').addEventListener('click', function() {
@@ -157,31 +173,60 @@
     }
     if (!valid) return;
 
-    /* Simulate loading */
+    /* Loading state */
     const btn = document.getElementById('loginBtn');
+    const resetBtn = () => {
+      btn.classList.remove('loading');
+      document.getElementById('loginBtnText').textContent = 'Sign In';
+      document.getElementById('loginBtnIcon').innerHTML =
+        `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>`;
+    };
     btn.classList.add('loading');
     document.getElementById('loginBtnText').textContent = 'Signing in…';
     document.getElementById('loginBtnIcon').innerHTML =
       `<circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
        <path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="3" stroke-linecap="round"/>`;
 
-    await new Promise(r => setTimeout(r, 800));
-
-    if ((u === 'admin' || u === 'admin@hospital.com') && p === 'admin123') {
-      localStorage.setItem('hms_token', 'demo-token-' + Date.now());
-      localStorage.setItem('hms_user', u);
-      if (document.getElementById('rememberMe').checked) {
-        localStorage.setItem('hms_remember', '1');
-      }
+    /* Remember-me decides where the token lives. */
+    const remember = document.getElementById('rememberMe').checked;
+    const store = remember ? localStorage : sessionStorage;
+    const otherStore = remember ? sessionStorage : localStorage;
+    const finishLogin = (token, displayName) => {
+      otherStore.removeItem('hms_token');
+      otherStore.removeItem('hms_user');
+      store.setItem('hms_token', token);
+      store.setItem('hms_user', displayName || u);
+      if (remember) localStorage.setItem('hms_remember', '1');
+      else localStorage.removeItem('hms_remember');
       showToast('Welcome back, Administrator!', 'success', 'Logged In');
       setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
-    } else {
-      btn.classList.remove('loading');
-      document.getElementById('loginBtnText').textContent = 'Sign In';
-      document.getElementById('loginBtnIcon').innerHTML =
-        `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>`;
-      showToast('Invalid username or password. Please try again.', 'error', 'Authentication Failed');
+    };
+
+    /* 1) Real JWT auth first — POST /auth/login via AuthAPI. */
+    const demoMode = window.HMS_CONFIG?.demoMode === true;
+    let authData = null;
+    try {
+      if (typeof AuthAPI !== 'undefined') authData = await AuthAPI.login(u, p);
+    } catch (err) { authData = null; }
+    const jwt = authData?.token || authData?.access_token || authData?.jwt || authData?.data?.token || null;
+
+    if (jwt) {
+      finishLogin(jwt, authData.user?.name || authData.user?.email || authData.name || u);
+      return;
     }
+
+    /* 2) Demo fallback — only when demo mode is explicitly enabled in config.
+          Covers both "demoMode on" and "auth endpoint unreachable while in demo config". */
+    if (demoMode && (u === 'admin' || u === 'admin@hospital.com') && p === 'admin123') {
+      finishLogin('demo-token-' + Date.now(), u);
+      return;
+    }
+
+    resetBtn();
+    showToast(
+      demoMode ? 'Invalid username or password. Please try again.'
+               : 'Authentication failed. Please check your credentials or contact your administrator.',
+      'error', 'Authentication Failed');
   });
 
   /* Remove validation on input */
