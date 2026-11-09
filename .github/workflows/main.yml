@@ -325,3 +325,13 @@ jobs:
           tags: |
             jawandockerhub/medicore-hospital:latest
             jawandockerhub/medicore-hospital:${{ github.sha }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: true
+          tags: |
+            jawandockerhub/medicore-hospital-backend:latest
+            jawandockerhub/medicore-hospital-backend:${{ github.sha }}
