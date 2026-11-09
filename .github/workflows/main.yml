@@ -259,8 +259,11 @@ jobs:
           set -euo pipefail
           site="http://$FRONTEND_BUCKET.s3-website.$AWS_REGION.amazonaws.com"
 
-          curl -fsS "$site/login.html" | grep -q 'id="step2"'
-          curl -fsS "$site/js/api.js" | grep -Fq "$API_BASE_URL"
+          curl -fsS "$site/login.html" -o /tmp/login.html
+          grep -q 'id="step2"' /tmp/login.html
+          curl -fsS "$site/js/api.js" -o /tmp/api.js
+          grep -Fq "$API_BASE_URL" /tmp/api.js
+
 
           auth_status=$(curl -s -o /tmp/auth-smoke.json -w '%{http_code}' \
             -X POST "$API_BASE_URL/auth/login" \
