@@ -264,7 +264,6 @@ jobs:
           curl -fsS "$site/js/api.js" -o /tmp/api.js
           grep -Fq "$API_BASE_URL" /tmp/api.js
 
-
           auth_status=$(curl -s -o /tmp/auth-smoke.json -w '%{http_code}' \
             -X POST "$API_BASE_URL/auth/login" \
             -H 'Content-Type: application/json' \
@@ -288,3 +287,41 @@ jobs:
             echo "- EC2 site: http://67.202.28.176/login.html"
             echo "- Lambdas: patient, billing, disease, doctor, auth"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  docker:
+    name: Build & Push Docker Image
+    needs: build-test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check Docker Hub secrets
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "${DOCKERHUB_USERNAME:-}" ] || [ -z "${DOCKERHUB_TOKEN:-}" ]; then
+            echo "::error::Missing GitHub secrets. Add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            jawandockerhub/medicore-hospital:latest
+            jawandockerhub/medicore-hospital:${{ github.sha }}
