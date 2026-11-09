@@ -3,76 +3,215 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payments — AWS Hospital</title>
+  <title>Payments — MediCore HMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-  <div class="bg-3d"></div>
-  <div class="grid-floor"></div>
-  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
 
-  <div class="dashboard">
-    <aside class="sidebar" id="sidebar"></aside>
-
-    <main class="main-content fade-in">
       <div class="page-header">
-        <h1>💳 Record Payment</h1>
+        <div class="page-header-left">
+          <h1>Payment Records</h1>
+          <p>Track all payment transactions and record new payments</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('paymentModal').classList.add('show')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+            Record Payment
+          </button>
+        </div>
       </div>
 
-      <div class="glass" style="padding:32px;max-width:700px;margin-bottom:24px;">
-        <form id="paymentForm">
-          <div class="input-group">
-            <label>Select Bill *</label>
-            <select id="paymentBill" name="bill_id" required></select>
-          </div>
-          <div class="input-group">
-            <label>Patient *</label>
-            <select id="paymentPatient" name="patient_id" required></select>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
-            <div class="input-group">
-              <label>Amount Paid (₹) *</label>
-              <input type="number" step="0.01" name="amount_paid" placeholder="1000" required>
-            </div>
-            <div class="input-group">
-              <label>Payment Method *</label>
-              <select name="payment_method" required>
-                <option value="Cash">Cash</option>
-                <option value="Card">Card</option>
-                <option value="UPI">UPI</option>
-                <option value="Insurance">Insurance</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Cheque">Cheque</option>
-              </select>
-            </div>
-          </div>
-          <div class="input-group">
-            <label>Transaction ID</label>
-            <input type="text" name="transaction_id" placeholder="TXN-XXXX">
-          </div>
-          <div class="input-group">
-            <label>Remarks</label>
-            <textarea name="remarks" placeholder="Optional notes"></textarea>
-          </div>
-          <button type="submit" class="btn btn-success btn-block">✅ Record Payment</button>
-        </form>
-        <p style="color:rgba(255,255,255,0.4);font-size:13px;text-align:center;margin-top:16px;">
-          A payment receipt email will be sent automatically. Bill status auto-updates.
-        </p>
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px;">
+        <div class="stat-card stat-green"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="stat-info"><div class="stat-value" id="totalCollected">—</div><div class="stat-label">Total Collected</div></div></div>
+        <div class="stat-card stat-blue"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div><div class="stat-info"><div class="stat-value" id="txnCount">—</div><div class="stat-label">Transactions</div></div></div>
+        <div class="stat-card stat-teal"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="stat-info"><div class="stat-value" id="todayCollected">—</div><div class="stat-label">Today</div></div></div>
       </div>
 
-      <div class="glass table-wrapper">
-        <h3 style="color:#fff;margin-bottom:16px;">📋 Payment History</h3>
-        <table>
-          <thead><tr><th>ID</th><th>Patient</th><th>Bill</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
-          <tbody id="paymentsTableBody"></tbody>
-        </table>
+      <div class="card">
+        <div class="table-toolbar">
+          <div class="table-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="paySearch" placeholder="Search by patient, transaction ID…">
+          </div>
+          <div class="table-filters">
+            <select class="form-control" id="payMethodFilter" style="width:auto; padding:7px 12px;">
+              <option value="">All Methods</option>
+              <option>Cash</option><option>Card</option><option>UPI</option>
+              <option>Net Banking</option><option>Insurance</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Txn ID</th><th>Bill #</th><th>Patient</th><th>Amount Paid</th>
+                <th>Method</th><th>Transaction Ref</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="paymentTable"><tr><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="payPagination"></div>
       </div>
-    </main>
+
+    </div>
   </div>
+</div>
 
-  <script src="../js/api.js"></script>
-  <script src="../js/billing.js"></script>
-  <script>fetch("../sidebar.html").then(r=>r.text()).then(h=>{document.getElementById("sidebar").innerHTML=h;});</script>
+<!-- Record Payment Modal -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal fade-in">
+    <div class="modal-header">
+      <h3>Record New Payment</h3>
+      <button class="modal-close" onclick="document.getElementById('paymentModal').classList.remove('show')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Select Bill <span class="required">*</span></label>
+          <select class="form-control" id="payBillSelect" required>
+            <option value="">— Select a bill —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount Paid (₹) <span class="required">*</span></label>
+          <input type="number" class="form-control" id="payAmount" placeholder="0.00" min="1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method <span class="required">*</span></label>
+          <select class="form-control" id="payMethod" required>
+            <option>Cash</option><option>Card</option><option>UPI</option>
+            <option>Net Banking</option><option>Insurance</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Transaction Reference / ID</label>
+          <input type="text" class="form-control" id="payTxnId" placeholder="e.g. TXN-1234 or UPI Ref">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Date</label>
+          <input type="date" class="form-control" id="payDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <input type="text" class="form-control" id="payNotes" placeholder="Optional notes">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('paymentModal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-success" id="recordPayBtn" onclick="recordPayment()">Record Payment</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'payment', title: 'Payments', subtitle: 'Billing' });
+
+  let allPayments = [];
+
+  async function init() {
+    document.getElementById('payDate').value = new Date().toISOString().split('T')[0];
+
+    /* Fill bill select */
+    const bills = await BillingAPI.listBills();
+    const sel = document.getElementById('payBillSelect');
+    (bills?.bills||[]).filter(b => b.status !== 'Paid').forEach(b => {
+      const o = document.createElement('option');
+      o.value = b.bill_id;
+      o.textContent = `#INV-${String(b.bill_id).padStart(5,'0')} — ${b.patient_name||'Patient '+b.patient_id} (${formatCurrency(b.net_amount)})`;
+      sel.appendChild(o);
+    });
+
+    const data = await BillingAPI.listPayments();
+    allPayments = data?.payments || [];
+
+    const total = allPayments.reduce((s,p) => s+Number(p.amount_paid||0), 0);
+    const today = new Date().toISOString().split('T')[0];
+    const todayTotal = allPayments.filter(p => (p.payment_date||'').startsWith(today)).reduce((s,p) => s+Number(p.amount_paid||0), 0);
+
+    document.getElementById('totalCollected').textContent = formatCurrency(total);
+    document.getElementById('txnCount').textContent = allPayments.length;
+    document.getElementById('todayCollected').textContent = formatCurrency(todayTotal);
+
+    renderTable();
+  }
+
+  let payPage = 1;
+  const perPage = 10;
+
+  function getFiltered() {
+    const q = (document.getElementById('paySearch').value||'').toLowerCase();
+    const m = document.getElementById('payMethodFilter').value;
+    return allPayments.filter(p => {
+      const matchQ = !q || (p.patient_name||'').toLowerCase().includes(q) || (p.transaction_id||'').toLowerCase().includes(q);
+      const matchM = !m || p.payment_method === m;
+      return matchQ && matchM;
+    });
+  }
+
+  function renderTable() {
+    const f = getFiltered();
+    const page = f.slice((payPage-1)*perPage, payPage*perPage);
+    document.getElementById('paymentTable').innerHTML = page.length
+      ? page.map(p => `
+        <tr>
+          <td class="fw-600">#PAY-${String(p.payment_id).padStart(5,'0')}</td>
+          <td><span class="badge badge-info">#INV-${String(p.bill_id).padStart(5,'0')}</span></td>
+          <td>
+            <div class="patient-cell">
+              <div class="patient-avatar" style="width:28px;height:28px;font-size:10px;">${initials(p.patient_name||'')}</div>
+              <span>${p.patient_name||'Patient #'+p.patient_id}</span>
+            </div>
+          </td>
+          <td class="fw-600" style="color:var(--green-600);">${formatCurrency(p.amount_paid)}</td>
+          <td><span class="badge badge-teal">${p.payment_method||'—'}</span></td>
+          <td class="text-muted">${p.transaction_id||'—'}</td>
+          <td class="text-muted">${formatDate(p.payment_date)}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="7"><div class="empty-state"><h4>No payments found</h4></div></td></tr>`;
+    buildPagination(document.getElementById('payPagination'), f.length, payPage, perPage, p => { payPage=p; renderTable(); });
+  }
+
+  document.getElementById('paySearch').addEventListener('input', () => { payPage=1; renderTable(); });
+  document.getElementById('payMethodFilter').addEventListener('change', () => { payPage=1; renderTable(); });
+
+  async function recordPayment() {
+    const bid    = document.getElementById('payBillSelect').value;
+    const amount = parseFloat(document.getElementById('payAmount').value);
+    if (!bid || !amount || amount <= 0) { showToast('Please fill in required fields.', 'warning'); return; }
+
+    const btn = document.getElementById('recordPayBtn');
+    btn.textContent = 'Processing…'; btn.disabled = true;
+
+    const body = {
+      bill_id:        parseInt(bid),
+      amount_paid:    amount,
+      payment_method: document.getElementById('payMethod').value,
+      transaction_id: document.getElementById('payTxnId').value.trim() || ('TXN-' + Date.now()),
+      payment_date:   document.getElementById('payDate').value,
+    };
+
+    const res = await BillingAPI.recordPayment(body);
+    btn.textContent = 'Record Payment'; btn.disabled = false;
+
+    if (res) {
+      showToast('Payment recorded successfully!', 'success');
+      document.getElementById('paymentModal').classList.remove('show');
+      await init();
+    }
+  }
+
+  init();
+</script>
 </body>
 </html>

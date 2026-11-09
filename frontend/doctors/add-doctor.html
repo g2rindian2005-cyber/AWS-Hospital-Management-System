@@ -3,84 +3,211 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add Doctor — AWS Hospital</title>
+  <title>Add Doctor — MediCore HMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-  <div class="bg-3d"></div>
-  <div class="grid-floor"></div>
-  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
 
-  <div class="dashboard">
-    <aside class="sidebar" id="sidebar"></aside>
-
-    <main class="main-content fade-in">
       <div class="page-header">
-        <h1>👨‍⚕️ Add Doctor</h1>
-        <a href="assign-doctor.html" class="btn btn-outline">Assign to Patient</a>
+        <div class="page-header-left">
+          <h1>Register New Doctor</h1>
+          <p>Add a new medical professional to the hospital system</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="appointments.html" class="btn btn-outline btn-sm">← Back to Doctors</a>
+        </div>
       </div>
 
-      <div class="glass" style="padding:32px;max-width:700px;margin-bottom:24px;">
-        <form id="addDoctorForm">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
-            <div class="input-group">
-              <label>First Name *</label>
-              <input type="text" name="first_name" placeholder="Dr. Anil" required>
-            </div>
-            <div class="input-group">
-              <label>Last Name *</label>
-              <input type="text" name="last_name" placeholder="Gupta" required>
-            </div>
-            <div class="input-group">
-              <label>Specialization *</label>
-              <input type="text" name="specialization" placeholder="Cardiologist" required>
-            </div>
-            <div class="input-group">
-              <label>Department</label>
-              <input type="text" name="department" placeholder="Cardiology">
-            </div>
-            <div class="input-group">
-              <label>Phone</label>
-              <input type="tel" name="phone" placeholder="9000012345">
-            </div>
-            <div class="input-group">
-              <label>Email</label>
-              <input type="email" name="email" placeholder="doctor@hospital.com">
-            </div>
-            <div class="input-group">
-              <label>License Number</label>
-              <input type="text" name="license_number" placeholder="MED-XXX">
-            </div>
-            <div class="input-group">
-              <label>Consultation Fee (₹)</label>
-              <input type="number" step="0.01" name="consultation_fee" placeholder="800" value="0">
-            </div>
-            <div class="input-group" style="grid-column:1/3;">
-              <label>Availability</label>
-              <select name="availability">
-                <option value="Available">Available</option>
-                <option value="Busy">Busy</option>
-                <option value="On Leave">On Leave</option>
-                <option value="Off Duty">Off Duty</option>
-              </select>
+      <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left"><h3>Doctor Profile</h3><p>Personal and professional information</p></div>
+            <span class="badge badge-info" id="doctorIdBadge">Auto ID</span>
+          </div>
+          <div class="card-body">
+            <form id="addDoctorForm" novalidate>
+
+              <div class="form-section">
+                <div class="form-section-title">Personal Information</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">First Name <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="firstName" placeholder="e.g. Dr. Anil" required>
+                    <span class="form-error">First name is required.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Last Name <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="lastName" placeholder="e.g. Gupta" required>
+                    <span class="form-error">Last name is required.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Gender</label>
+                    <select class="form-control" id="gender">
+                      <option value="">Select</option>
+                      <option>Male</option><option>Female</option><option>Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Date of Birth</label>
+                    <input type="date" class="form-control" id="dob">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <div class="form-section-title">Professional Details</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Specialization <span class="required">*</span></label>
+                    <select class="form-control" id="specialization" required>
+                      <option value="">Select specialization</option>
+                      <option>General Physician</option><option>Cardiologist</option>
+                      <option>Neurologist</option><option>Orthopedic</option>
+                      <option>Pediatrician</option><option>Gynecologist</option>
+                      <option>Dermatologist</option><option>Oncologist</option>
+                      <option>Radiologist</option><option>Psychiatrist</option>
+                      <option>Pulmonologist</option><option>Gastroenterologist</option>
+                      <option>ENT Specialist</option><option>Ophthalmologist</option>
+                      <option>Urologist</option><option>Surgeon</option>
+                    </select>
+                    <span class="form-error">Please select a specialization.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Department</label>
+                    <input type="text" class="form-control" id="department" placeholder="e.g. Cardiology">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Qualification</label>
+                    <input type="text" class="form-control" id="qualification" placeholder="e.g. MBBS, MD, DM">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Experience (Years)</label>
+                    <input type="number" class="form-control" id="experience" placeholder="e.g. 12" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Consultation Fee (₹)</label>
+                    <input type="number" class="form-control" id="consultFee" placeholder="e.g. 800" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Availability</label>
+                    <select class="form-control" id="availability">
+                      <option>Available</option><option>Busy</option><option>On Leave</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">License Number</label>
+                    <input type="text" class="form-control" id="license" placeholder="Medical license number">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Joining Date</label>
+                    <input type="date" class="form-control" id="joiningDate">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section mb-0">
+                <div class="form-section-title">Contact Information</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Phone <span class="required">*</span></label>
+                    <input type="tel" class="form-control" id="phone" placeholder="e.g. 9000012345" required>
+                    <span class="form-error">Phone number is required.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" placeholder="doctor@hospital.com">
+                  </div>
+                </div>
+              </div>
+
+            </form>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-outline" onclick="document.getElementById('addDoctorForm').reset()">Clear</button>
+            <button class="btn btn-primary" id="submitBtn" onclick="submitDoctor()">Register Doctor</button>
+          </div>
+        </div>
+
+        <!-- Side -->
+        <div style="display:flex; flex-direction:column; gap:18px;">
+          <div class="card">
+            <div class="card-header"><div class="card-header-left"><h3>Doctor ID Preview</h3></div></div>
+            <div class="card-body" style="text-align:center; padding:28px;">
+              <div style="font-size:32px; font-weight:800; color:var(--teal-600); letter-spacing:2px;">DOC-????</div>
+              <p style="font-size:12px; color:var(--gray-400); margin-top:8px;">Auto-assigned on registration</p>
             </div>
           </div>
-          <button type="submit" class="btn btn-primary btn-block">💾 Add Doctor</button>
-        </form>
+
+          <div class="card">
+            <div class="card-header"><div class="card-header-left"><h3>Availability Status</h3></div></div>
+            <div class="card-body">
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div class="d-flex align-center gap-8"><span class="badge badge-success">Available</span><span style="font-size:12.5px; color:var(--gray-500);">Ready to accept patients</span></div>
+                <div class="d-flex align-center gap-8"><span class="badge badge-warning">Busy</span><span style="font-size:12.5px; color:var(--gray-500);">Currently in consultation</span></div>
+                <div class="d-flex align-center gap-8"><span class="badge badge-gray">On Leave</span><span style="font-size:12.5px; color:var(--gray-500);">Temporarily unavailable</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="glass table-wrapper">
-        <h3 style="color:#fff;margin-bottom:16px;">📋 All Doctors</h3>
-        <table>
-          <thead><tr><th>ID</th><th>Name</th><th>Specialization</th><th>Department</th><th>Phone</th><th>Availability</th></tr></thead>
-          <tbody id="doctorsTableBody"></tbody>
-        </table>
-      </div>
-    </main>
+    </div>
   </div>
+</div>
 
-  <script src="../js/api.js"></script>
-  <script src="../js/doctors.js"></script>
-  <script>fetch("../sidebar.html").then(r=>r.text()).then(h=>{document.getElementById("sidebar").innerHTML=h;});</script>
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'add-doctor', title: 'Add Doctor', subtitle: 'Doctors' });
+
+  document.getElementById('joiningDate').value = new Date().toISOString().split('T')[0];
+
+  async function submitDoctor() {
+    const required = ['firstName','lastName','specialization','phone'];
+    let valid = true;
+    required.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
+      else el.classList.remove('is-invalid');
+    });
+    if (!valid) { showToast('Please fill in all required fields.', 'warning'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Registering…'; btn.disabled = true;
+
+    const body = {
+      first_name:       document.getElementById('firstName').value.trim(),
+      last_name:        document.getElementById('lastName').value.trim(),
+      gender:           document.getElementById('gender').value,
+      date_of_birth:    document.getElementById('dob').value,
+      specialization:   document.getElementById('specialization').value,
+      department:       document.getElementById('department').value.trim(),
+      qualification:    document.getElementById('qualification').value.trim(),
+      experience_years: parseInt(document.getElementById('experience').value)||0,
+      consultation_fee: parseFloat(document.getElementById('consultFee').value)||0,
+      availability:     document.getElementById('availability').value,
+      license_number:   document.getElementById('license').value.trim(),
+      joining_date:     document.getElementById('joiningDate').value,
+      phone:            document.getElementById('phone').value.trim(),
+      email:            document.getElementById('email').value.trim(),
+    };
+
+    const res = await DoctorsAPI.create(body);
+    btn.textContent = 'Register Doctor'; btn.disabled = false;
+
+    if (res) {
+      const id = res.doctor_id || res.id || '—';
+      showToast(`Doctor registered! ID: DOC-${String(id).padStart(4,'0')}`, 'success', 'Registration Successful');
+      document.getElementById('addDoctorForm').reset();
+      document.getElementById('joiningDate').value = new Date().toISOString().split('T')[0];
+    }
+  }
+</script>
 </body>
 </html>

@@ -3,90 +3,272 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add Patient — AWS Hospital</title>
+  <title>Register Patient — MediCore HMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-  <div class="bg-3d"></div>
-  <div class="grid-floor"></div>
-  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
 
-  <div class="dashboard">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar"></aside>
-
-    <!-- Main -->
-    <main class="main-content fade-in">
       <div class="page-header">
-        <h1>➕ Add New Patient</h1>
-        <a href="view-patient.html" class="btn btn-outline">View All Patients</a>
+        <div class="page-header-left">
+          <h1>Register New Patient</h1>
+          <p>Fill in the details below to create a new patient record</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="view-patient.html" class="btn btn-outline btn-sm">← Back to Patients</a>
+        </div>
       </div>
 
-      <div class="glass" style="padding:32px;max-width:700px;">
-        <form id="addPatientForm">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;">
-            <div class="input-group">
-              <label>First Name *</label>
-              <input type="text" name="first_name" placeholder="Rahul" required>
+      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px;">
+
+        <!-- Form Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <h3>Patient Information</h3>
+              <p>All fields marked with * are required</p>
             </div>
-            <div class="input-group">
-              <label>Last Name *</label>
-              <input type="text" name="last_name" placeholder="Sharma" required>
-            </div>
-            <div class="input-group">
-              <label>Date of Birth *</label>
-              <input type="date" name="date_of_birth" required>
-            </div>
-            <div class="input-group">
-              <label>Gender *</label>
-              <select name="gender" required>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label>Phone *</label>
-              <input type="tel" name="phone" placeholder="9876543210" required>
-            </div>
-            <div class="input-group">
-              <label>Email</label>
-              <input type="email" name="email" placeholder="patient@email.com">
-            </div>
-            <div class="input-group">
-              <label>Blood Group</label>
-              <select name="blood_group">
-                <option value="">— Select —</option>
-                <option>O+</option><option>O-</option><option>A+</option><option>A-</option>
-                <option>B+</option><option>B-</option><option>AB+</option><option>AB-</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label>Emergency Contact</label>
-              <input type="tel" name="emergency_contact" placeholder="9123456780">
-            </div>
-            <div class="input-group" style="grid-column:1/3;">
-              <label>Address</label>
-              <textarea name="address" placeholder="Full address"></textarea>
-            </div>
-            <div class="input-group" style="grid-column:1/3;">
-              <label>Insurance Number</label>
-              <input type="text" name="insurance_number" placeholder="INS-XXXX">
+            <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray-500);">
+              Patient ID:
+              <span class="badge badge-info" id="generatedId">Auto-generated</span>
             </div>
           </div>
-          <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">💾 Register Patient</button>
-        </form>
-        <p style="color:rgba(255,255,255,0.4);font-size:13px;text-align:center;margin-top:16px;">
-          A registration confirmation email will be sent automatically via SES SMTP.
-        </p>
-      </div>
-    </main>
-  </div>
+          <div class="card-body">
+            <form id="addPatientForm" novalidate>
 
-  <script src="../js/api.js"></script>
-  <script src="../js/patients.js"></script>
-  <script>
-    fetch("../sidebar.html").then(r=>r.text()).then(h=>{document.getElementById("sidebar").innerHTML=h;});
-  </script>
+              <div class="form-section">
+                <div class="form-section-title">Personal Details</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">First Name <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="firstName" placeholder="e.g. Rahul" required>
+                    <span class="form-error">First name is required.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Last Name <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="lastName" placeholder="e.g. Sharma" required>
+                    <span class="form-error">Last name is required.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Date of Birth <span class="required">*</span></label>
+                    <input type="date" class="form-control" id="dob" required>
+                    <span class="form-error">Date of birth is required.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Gender <span class="required">*</span></label>
+                    <select class="form-control" id="gender" required>
+                      <option value="">Select gender</option>
+                      <option>Male</option>
+                      <option>Female</option>
+                      <option>Other</option>
+                    </select>
+                    <span class="form-error">Please select a gender.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Blood Group</label>
+                    <select class="form-control" id="bloodGroup">
+                      <option value="">Select blood group</option>
+                      <option>A+</option><option>A-</option>
+                      <option>B+</option><option>B-</option>
+                      <option>O+</option><option>O-</option>
+                      <option>AB+</option><option>AB-</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Marital Status</label>
+                    <select class="form-control" id="maritalStatus">
+                      <option value="">Select</option>
+                      <option>Single</option><option>Married</option>
+                      <option>Divorced</option><option>Widowed</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <div class="form-section-title">Contact Information</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Phone Number <span class="required">*</span></label>
+                    <input type="tel" class="form-control" id="phone" placeholder="e.g. 9876543210" required>
+                    <span class="form-error">Valid phone number is required.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" placeholder="e.g. rahul@email.com">
+                  </div>
+                  <div class="form-group full">
+                    <label class="form-label">Address</label>
+                    <input type="text" class="form-control" id="address" placeholder="Street address">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">City</label>
+                    <input type="text" class="form-control" id="city" placeholder="City">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Pincode</label>
+                    <input type="text" class="form-control" id="pincode" placeholder="6-digit pincode">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <div class="form-section-title">Emergency Contact</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Contact Name</label>
+                    <input type="text" class="form-control" id="emergencyName" placeholder="Emergency contact name">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Contact Phone</label>
+                    <input type="tel" class="form-control" id="emergencyPhone" placeholder="Emergency phone number">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section mb-0">
+                <div class="form-section-title">Medical Notes</div>
+                <div class="form-group">
+                  <label class="form-label">Existing Conditions / Allergies</label>
+                  <textarea class="form-control" id="medicalNotes" rows="3" placeholder="List any known allergies, existing conditions, or important medical history…"></textarea>
+                </div>
+              </div>
+
+            </form>
+          </div>
+          <div class="card-footer">
+            <button type="button" class="btn btn-outline" onclick="resetForm()">Reset Form</button>
+            <button type="button" class="btn btn-primary" id="submitBtn" onclick="submitForm()">
+              Register Patient
+            </button>
+          </div>
+        </div>
+
+        <!-- Side Info -->
+        <div style="display:flex; flex-direction:column; gap:18px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-header-left"><h3>Patient ID Preview</h3></div>
+            </div>
+            <div class="card-body" style="text-align:center; padding:28px;">
+              <div style="font-size:36px; font-weight:800; color:var(--blue-600); letter-spacing:2px;" id="pidPreview">PID-????</div>
+              <p style="font-size:12px; color:var(--gray-400); margin-top:8px;">Auto-assigned on registration</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-header-left"><h3>Checklist</h3></div></div>
+            <div class="card-body">
+              <div id="checklistItems" style="display:flex; flex-direction:column; gap:8px;">
+                <div class="checklist-item" data-field="firstName" id="chk-name">
+                  <span style="color:var(--gray-300);">○</span>
+                  <span style="font-size:13px; color:var(--gray-500);">Full name entered</span>
+                </div>
+                <div class="checklist-item" data-field="dob" id="chk-dob">
+                  <span style="color:var(--gray-300);">○</span>
+                  <span style="font-size:13px; color:var(--gray-500);">Date of birth</span>
+                </div>
+                <div class="checklist-item" data-field="gender" id="chk-gender">
+                  <span style="color:var(--gray-300);">○</span>
+                  <span style="font-size:13px; color:var(--gray-500);">Gender selected</span>
+                </div>
+                <div class="checklist-item" data-field="phone" id="chk-phone">
+                  <span style="color:var(--gray-300);">○</span>
+                  <span style="font-size:13px; color:var(--gray-500);">Phone number</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-header-left"><h3>Guidelines</h3></div></div>
+            <div class="card-body">
+              <ul style="font-size:12.5px; color:var(--gray-500); line-height:1.8; padding-left:16px; list-style:disc;">
+                <li>Verify patient identity before registration</li>
+                <li>Ensure phone number is reachable</li>
+                <li>Note any critical allergies</li>
+                <li>Patient will receive confirmation by email</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'add-patient', title: 'Register Patient', subtitle: 'Patients' });
+
+  /* Checklist live update */
+  const checks = {
+    'chk-name':   () => document.getElementById('firstName').value && document.getElementById('lastName').value,
+    'chk-dob':    () => document.getElementById('dob').value,
+    'chk-gender': () => document.getElementById('gender').value,
+    'chk-phone':  () => document.getElementById('phone').value,
+  };
+  function updateChecklist() {
+    Object.entries(checks).forEach(([id, fn]) => {
+      const el = document.getElementById(id);
+      const ok = fn();
+      el.querySelector('span').textContent = ok ? '✓' : '○';
+      el.querySelector('span').style.color = ok ? 'var(--green-500)' : 'var(--gray-300)';
+      el.querySelectorAll('span')[1].style.color = ok ? 'var(--gray-800)' : 'var(--gray-500)';
+    });
+  }
+  document.getElementById('addPatientForm').addEventListener('input', updateChecklist);
+
+  function resetForm() {
+    document.getElementById('addPatientForm').reset();
+    updateChecklist();
+  }
+
+  async function submitForm() {
+    const fields = ['firstName','lastName','dob','gender','phone'];
+    let valid = true;
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
+      else el.classList.remove('is-invalid');
+    });
+    if (!valid) { showToast('Please fill in all required fields.', 'warning'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Registering…'; btn.disabled = true;
+
+    const body = {
+      first_name:         document.getElementById('firstName').value.trim(),
+      last_name:          document.getElementById('lastName').value.trim(),
+      date_of_birth:      document.getElementById('dob').value,
+      gender:             document.getElementById('gender').value,
+      blood_group:        document.getElementById('bloodGroup').value,
+      phone:              document.getElementById('phone').value.trim(),
+      email:              document.getElementById('email').value.trim(),
+      address:            document.getElementById('address').value.trim(),
+      emergency_contact:  document.getElementById('emergencyName').value.trim(),
+      emergency_phone:    document.getElementById('emergencyPhone').value.trim(),
+      medical_notes:      document.getElementById('medicalNotes').value.trim(),
+    };
+
+    const res = await PatientsAPI.create(body);
+    btn.textContent = 'Register Patient'; btn.disabled = false;
+
+    if (res) {
+      const pid = res.patient_id || res.id || '—';
+      showToast(`Patient registered! ID: PID-${String(pid).padStart(4,'0')}`, 'success', 'Registration Successful');
+      document.getElementById('pidPreview').textContent = `PID-${String(pid).padStart(4,'0')}`;
+      document.getElementById('addPatientForm').reset();
+      updateChecklist();
+    }
+  }
+</script>
 </body>
 </html>
