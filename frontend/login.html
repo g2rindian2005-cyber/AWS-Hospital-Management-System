@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 
@@ -22,11 +22,11 @@
           <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
         </svg>
       </div>
-      <span class="logo-name">MediCore HMS</span>
+      <span class="logo-name">MediCore Hospital</span>
     </div>
 
-    <h1>Advanced Hospital<br>Management System</h1>
-    <p>A complete cloud-native solution for managing patients, billing, clinical records, and medical staff — powered by AWS.</p>
+    <h1>Your hospital,<br>one dashboard.</h1>
+    <p>Patients, billing, records and staff — every department works from the same live records, in real time.</p>
 
     <div class="login-brand-stats">
       <div class="login-stat">
@@ -34,7 +34,7 @@
         <span class="lbl">Modules</span>
       </div>
       <div class="login-stat">
-        <span class="num">AWS</span>
+        <span class="num">Cloud</span>
         <span class="lbl">Powered</span>
       </div>
       <div class="login-stat">
@@ -50,7 +50,6 @@
       <span style="background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500;">✦ Disease Records</span>
       <span style="background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500;">✦ Doctor Management</span>
       <span style="background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500;">✦ Appointments</span>
-      <span style="background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500;">✦ Lambda Serverless</span>
     </div>
   </div>
 
@@ -68,10 +67,11 @@
         <span style="font-size:18px; font-weight:800; color:#111827; letter-spacing:-0.5px;">MediCore</span>
       </div>
 
-      <h2>Welcome back</h2>
-      <p class="login-subtitle">Sign in to your hospital administrator account</p>
+      <h2 id="loginTitle">Welcome back</h2>
+      <p class="login-subtitle" id="loginSubtitle">Sign in to your hospital administrator account</p>
 
       <form id="loginForm" novalidate>
+       <div id="step1">
         <div class="form-group">
           <label class="form-label" for="username">Username or Email</label>
           <input type="text" id="username" class="form-control" placeholder="admin" autocomplete="username" required>
@@ -99,6 +99,23 @@
           </label>
           <a href="#" class="forgot-link">Forgot password?</a>
         </div>
+       </div><!-- /step1 -->
+
+       <div id="step2" style="display:none">
+        <div class="form-group">
+          <label class="form-label" for="otpCode">Verification Code</label>
+          <input type="text" id="otpCode" class="form-control" placeholder="••••••"
+                 inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                 style="text-align:center; font-size:22px; letter-spacing:10px; font-weight:700;">
+          <span class="form-error" id="otpError">Please enter the 6-digit code.</span>
+        </div>
+        <p id="otpHint" style="font-size:13px; color:#6b7280; margin:2px 0 8px;"></p>
+        <div id="otpDemo" style="display:none; background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:10px;"></div>
+        <div class="login-options" style="margin-top:4px;">
+          <a href="#" class="forgot-link" id="otpBack">← Back</a>
+          <a href="#" class="forgot-link" id="otpResend">Resend code</a>
+        </div>
+       </div><!-- /step2 -->
 
         <button type="submit" class="btn-login" id="loginBtn">
           <span id="loginBtnText">Sign In</span>
@@ -110,12 +127,8 @@
         </button>
       </form>
 
-      <div class="login-demo-note" id="demoNote" style="display:none;">
-        <strong>Demo credentials:</strong> username <code>admin</code> &nbsp;/&nbsp; password <code>admin123</code>
-      </div>
-
       <p style="text-align:center; margin-top:20px; font-size:12px; color:#9ca3af;">
-        © 2026 MediCore Hospital Management System. All rights reserved.
+        © 2026 MediCore Hospital · by Gokul Rathod
       </p>
     </div>
   </div>
@@ -125,116 +138,133 @@
 <div id="toast-container"></div>
 
 <script src="js/ui.js"></script>
-<script>
-  /* Build HMS_CONFIG from locally stored preferences (set on the Settings page). */
-  window.HMS_CONFIG = window.HMS_CONFIG || {};
-  try {
-    const _apiBase = localStorage.getItem('hms_api_base');
-    if (_apiBase) window.HMS_CONFIG.apiBase = _apiBase;
-    if (localStorage.getItem('hms_demo_mode') === '1') window.HMS_CONFIG.demoMode = true;
-    if (localStorage.getItem('hms_dev_mock') === '1') window.HMS_CONFIG.devMock = true;
-  } catch (e) {}
-</script>
 <script src="js/api.js"></script>
 <script>
-  /* Demo credentials are only ever shown in explicit demo mode. */
-  if (window.HMS_CONFIG?.demoMode === true) {
-    const _dn = document.getElementById('demoNote');
-    if (_dn) _dn.style.display = '';
-  }
-  /* Show/hide password */
-  const pwdInput = document.getElementById('password');
-  document.getElementById('togglePassword').addEventListener('click', function() {
-    const show = pwdInput.type === 'password';
-    pwdInput.type = show ? 'text' : 'password';
-    document.getElementById('eyeIcon').innerHTML = show
-      ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" x2="23" y1="1" y2="23"/>`
-      : `<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>`;
+  /* ══ JWT login — simple ════════════════════════════════════
+     1. Send the username + password to POST /auth/login.
+     2. The auth Lambda checks them and returns a signed JWT.
+     3. Save the JWT and open the dashboard.
+     That is the only way in — no demo or local shortcut. */
+
+  const EYE_ON  = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+  const EYE_OFF = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" x2="23" y1="1" y2="23"/>';
+  const ARROW   = '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>';
+  const SPINNER = '<circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="3" stroke-linecap="round"/>';
+
+  /* Show / hide password */
+  const pwd = document.getElementById('password');
+  document.getElementById('togglePassword').addEventListener('click', () => {
+    const show = pwd.type === 'password';
+    pwd.type = show ? 'text' : 'password';
+    document.getElementById('eyeIcon').innerHTML = show ? EYE_OFF : EYE_ON;
   });
 
-  /* Login form */
+  /* Loading state on the Sign In button */
+  const btn = document.getElementById('loginBtn');
+  function setLoading(on) {
+    btn.classList.toggle('loading', on);
+    btn.disabled = on;
+    if (on) document.getElementById('loginBtnText').textContent = 'Please wait\u2026';
+    else setStepUI();
+    document.getElementById('loginBtnIcon').innerHTML = on ? SPINNER : ARROW;
+  }
+
+  /* The login itself — two steps: password, then emailed OTP */
+  let step = 1, challenge = null, savedU = '', savedP = '';
+
+  function setStepUI() {
+    document.getElementById('step1').style.display = step === 1 ? 'block' : 'none';
+    document.getElementById('step2').style.display = step === 2 ? 'block' : 'none';
+    document.getElementById('loginTitle').textContent = step === 1 ? 'Welcome back' : 'Check your inbox';
+    document.getElementById('loginSubtitle').textContent = step === 1
+      ? 'Sign in to your hospital administrator account'
+      : 'Enter the 6-digit code we emailed you';
+    document.getElementById('loginBtnText').textContent = step === 1 ? 'Sign In' : 'Verify & Sign In';
+  }
+
+  function finishLogin(token, name) {
+    const remember = document.getElementById('rememberMe').checked;
+    setToken(token, remember);
+    (remember ? localStorage : sessionStorage).setItem('hms_user', name || savedU);
+    showToast('Welcome back, Administrator!', 'success', 'Logged In');
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
+  }
+
+  async function requestOtp(u, p) {
+    const data = await AuthAPI.login(u, p);                // POST /auth/login
+    if (data && data.token) { finishLogin(data.token, data.user && data.user.name); return; }
+    if (!data || !data.otp_required) throw new Error('Login failed');
+    challenge = data.challenge;
+    step = 2;
+    setStepUI();
+    document.getElementById('otpHint').textContent = data.email_hint
+      ? `Code sent to ${data.email_hint} · expires in 5 minutes`
+      : 'Your code expires in 5 minutes';
+    const demo = document.getElementById('otpDemo');
+    if (data.dev_otp) {
+      demo.style.display = 'block';
+      demo.innerHTML = 'Email delivery is not active yet — your code is: <strong style="font-size:16px; letter-spacing:3px;">' + data.dev_otp + '</strong>';
+    } else {
+      demo.style.display = 'none';
+    }
+    document.getElementById('otpCode').focus();
+  }
+
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (step === 2) {
+      const otp = document.getElementById('otpCode').value.trim();
+      document.getElementById('otpCode').classList.toggle('is-invalid', otp.length !== 6);
+      if (otp.length !== 6) return;
+      setLoading(true);
+      try {
+        const data = await AuthAPI.verifyOtp(challenge, otp);   // POST /auth/verify-otp -> { token }
+        if (!data || !data.token) throw new Error('Bad code');
+        finishLogin(data.token, data.user && data.user.name);
+      } catch (err) {
+        setLoading(false);
+        showToast('Invalid or expired code. Please try again.', 'error', 'Verification Failed');
+      }
+      return;
+    }
+
     const u = document.getElementById('username').value.trim();
-    const p = document.getElementById('password').value;
-    let valid = true;
+    const p = pwd.value;
+    document.getElementById('username').classList.toggle('is-invalid', !u);
+    pwd.classList.toggle('is-invalid', !p);
+    if (!u || !p) return;
 
-    if (!u) {
-      document.getElementById('username').classList.add('is-invalid');
-      valid = false;
-    } else {
-      document.getElementById('username').classList.remove('is-invalid');
-    }
-    if (!p) {
-      document.getElementById('password').classList.add('is-invalid');
-      valid = false;
-    } else {
-      document.getElementById('password').classList.remove('is-invalid');
-    }
-    if (!valid) return;
-
-    /* Loading state */
-    const btn = document.getElementById('loginBtn');
-    const resetBtn = () => {
-      btn.classList.remove('loading');
-      document.getElementById('loginBtnText').textContent = 'Sign In';
-      document.getElementById('loginBtnIcon').innerHTML =
-        `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>`;
-    };
-    btn.classList.add('loading');
-    document.getElementById('loginBtnText').textContent = 'Signing in…';
-    document.getElementById('loginBtnIcon').innerHTML =
-      `<circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
-       <path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="3" stroke-linecap="round"/>`;
-
-    /* Remember-me decides where the token lives. */
-    const remember = document.getElementById('rememberMe').checked;
-    const store = remember ? localStorage : sessionStorage;
-    const otherStore = remember ? sessionStorage : localStorage;
-    const finishLogin = (token, displayName) => {
-      otherStore.removeItem('hms_token');
-      otherStore.removeItem('hms_user');
-      store.setItem('hms_token', token);
-      store.setItem('hms_user', displayName || u);
-      if (remember) localStorage.setItem('hms_remember', '1');
-      else localStorage.removeItem('hms_remember');
-      showToast('Welcome back, Administrator!', 'success', 'Logged In');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
-    };
-
-    /* 1) Real JWT auth first — POST /auth/login via AuthAPI. */
-    const demoMode = window.HMS_CONFIG?.demoMode === true;
-    let authData = null;
+    setLoading(true);
     try {
-      if (typeof AuthAPI !== 'undefined') authData = await AuthAPI.login(u, p);
-    } catch (err) { authData = null; }
-    const jwt = authData?.token || authData?.access_token || authData?.jwt || authData?.data?.token || null;
-
-    if (jwt) {
-      finishLogin(jwt, authData.user?.name || authData.user?.email || authData.name || u);
-      return;
+      savedU = u; savedP = p;
+      await requestOtp(u, p);
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      showToast('Invalid username or password. Please try again.', 'error', 'Authentication Failed');
     }
-
-    /* 2) Demo fallback — only when demo mode is explicitly enabled in config.
-          Covers both "demoMode on" and "auth endpoint unreachable while in demo config". */
-    if (demoMode && (u === 'admin' || u === 'admin@hospital.com') && p === 'admin123') {
-      finishLogin('demo-token-' + Date.now(), u);
-      return;
-    }
-
-    resetBtn();
-    showToast(
-      demoMode ? 'Invalid username or password. Please try again.'
-               : 'Authentication failed. Please check your credentials or contact your administrator.',
-      'error', 'Authentication Failed');
   });
 
-  /* Remove validation on input */
-  ['username','password'].forEach(id => {
-    document.getElementById(id).addEventListener('input', function() {
-      this.classList.remove('is-invalid');
-    });
+  /* Resend a fresh code / go back to step 1 */
+  document.getElementById('otpResend').addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      await requestOtp(savedU, savedP);
+      showToast('A new code was sent.', 'success', 'Code Resent');
+    } catch (err) {
+      showToast('Could not resend the code. Please sign in again.', 'error', 'Resend Failed');
+    }
   });
+  document.getElementById('otpBack').addEventListener('click', (e) => {
+    e.preventDefault();
+    step = 1; challenge = null;
+    setStepUI();
+  });
+
+  /* Clear the red error border while typing */
+  ['username', 'password'].forEach(id =>
+    document.getElementById(id).addEventListener('input', e => e.target.classList.remove('is-invalid')));
 </script>
 </body>
 </html>

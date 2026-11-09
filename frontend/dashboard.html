@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — MediCore HMS</title>
+  <title>Dashboard — MediCore Hospital</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 
@@ -32,6 +32,21 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
             Create Bill
           </a>
+        </div>
+      </div>
+
+      <!-- Hero banner -->
+      <div class="hero-banner">
+        <img class="hero-banner-img" src="https://images.unsplash.com/photo-1550831107-1553da8c8464?w=1800&q=80&auto=format&fit=crop" alt="Doctor consulting a patient at MediCore Hospital">
+        <div class="hero-banner-overlay"></div>
+        <div class="hero-banner-content">
+          <div class="hero-banner-eyebrow">MediCore Hospital · Gokul Rathod</div>
+          <h2 class="hero-banner-title">Compassionate care, powered by live data</h2>
+          <p class="hero-banner-sub">Every patient, doctor, diagnosis and bill across your hospital — synchronised in real time.</p>
+          <div class="hero-banner-actions">
+            <a href="patients/add-patient.html" class="btn btn-primary btn-sm">Register Patient</a>
+            <a href="doctors/appointments.html" class="btn btn-hero-ghost btn-sm">Today's Schedule</a>
+          </div>
         </div>
       </div>
 
@@ -292,6 +307,7 @@
 </div><!-- /app-layout -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/api.js"></script>
 <script>
@@ -510,7 +526,148 @@
   })();
 </script>
 
+<script>
+/* ── GSAP motion layer (progressive enhancement — the dashboard works
+      identically without it; everything below is guarded) ───────────── */
+(function () {
+  if (!window.gsap) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  /* Entrance choreography */
+  try {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl.from('#sidebar', { x: -28, opacity: 0, duration: 0.45 })
+      .from('#topbar', { y: -14, opacity: 0, duration: 0.35 }, '-=0.28')
+      .from('.page-header', { y: 18, opacity: 0, duration: 0.4 }, '-=0.20')
+      .from('.hero-banner', { y: 22, opacity: 0, scale: 0.99, duration: 0.5, clearProps: 'transform' }, '-=0.18')
+      .from('.hero-banner-content > *', { y: 14, opacity: 0, duration: 0.35, stagger: 0.06 }, '-=0.25')
+      /* NOTE: .stat-card and .quick-action-btn are deliberately NOT animated
+         here. In production they reproducibly stayed invisible after a
+         from() tween (verified in a real browser: correct box, clickable,
+         but never painted), so they render statically — always visible. */
+      .from('.grid-2 .card, .responsive-grid-3 .card, .page-content > .card', { y: 24, opacity: 0, duration: 0.5, stagger: 0.08, clearProps: 'transform' }, '-=0.25');
+    /* Slow Ken Burns drift on the hero photo */
+    gsap.to('.hero-banner-img', { scale: 1.09, duration: 22, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    /* Safety net: whatever happens to the timeline, no dashboard element
+       may stay stuck in a hidden 'from' state. */
+    const safetyClear = () => {
+      document.querySelectorAll('#sidebar, #topbar, .page-header, .hero-banner, .stat-card, .quick-action-btn, .grid-2 .card, .responsive-grid-3 .card, .page-content > .card')
+        .forEach(el => { try { gsap.killTweensOf(el); gsap.set(el, { clearProps: 'opacity,transform' }); } catch (e) { el.style.opacity = ''; el.style.transform = ''; } });
+    };
+    setTimeout(safetyClear, 2200);
+    setTimeout(safetyClear, 4000);
+  } catch (e) { /* entrance animation is decorative */ }
+
+  /* Animated counters — watch each stat value; when real data replaces
+     the '—' placeholder, count up from 0 with matching formatting. */
+  function animateValue(el) {
+    const finalText = el.textContent.trim();
+    const target = parseFloat(finalText.replace(/[^0-9.]/g, ''));
+    if (!isFinite(target)) return;
+    const isMoney = finalText.indexOf('₹') !== -1;
+    const proxy = { v: 0 };
+    gsap.to(proxy, {
+      v: target, duration: 1.4, ease: 'power2.out',
+      onUpdate() {
+        const n = Math.round(proxy.v).toLocaleString('en-IN');
+        el.textContent = isMoney ? '₹' + n : n;
+      },
+      onComplete() { el.textContent = finalText; }
+    });
+  }
+  document.querySelectorAll('.stat-value').forEach(el => {
+    if (el.textContent.trim() !== '—') { animateValue(el); return; }
+    const mo = new MutationObserver(() => {
+      if (el.textContent.trim() !== '—') { mo.disconnect(); animateValue(el); }
+    });
+    mo.observe(el, { childList: true, characterData: true, subtree: true });
+    setTimeout(() => mo.disconnect(), 15000);
+  });
+
+  /* Stagger in list / table content as real data renders */
+  function watchContainer(id, childSelector) {
+    const box = document.getElementById(id);
+    if (!box) return;
+    const mo = new MutationObserver(() => {
+      const kids = box.querySelectorAll(childSelector);
+      if (kids.length) {
+        mo.disconnect();
+        gsap.from(kids, { opacity: 0, x: -14, duration: 0.45, stagger: 0.05, ease: 'power2.out', clearProps: 'all' });
+      }
+    });
+    mo.observe(box, { childList: true });
+    setTimeout(() => mo.disconnect(), 15000);
+  }
+  watchContainer('recentPatientsList', '.recent-item');
+  watchContainer('doctorsList', '.doctor-card');
+  watchContainer('notifList', '.notification-item');
+  watchContainer('recentBillsTable', 'tr');
+  watchContainer('assignmentsTable', 'tr');
+
+  /* Hover micro-interactions */
+  document.querySelectorAll('.stat-card, .quick-action-btn').forEach(card => {
+    card.addEventListener('mouseenter', () => gsap.to(card, { y: -4, scale: 1.02, duration: 0.25, ease: 'power2.out' }));
+    card.addEventListener('mouseleave', () => gsap.to(card, { y: 0, scale: 1, duration: 0.3, ease: 'power2.out' }));
+  });
+  document.querySelectorAll('.stat-icon-wrap').forEach(icon => {
+    const card = icon.closest('.stat-card');
+    if (!card) return;
+    card.addEventListener('mouseenter', () => gsap.fromTo(icon, { rotate: 0 }, { rotate: 8, duration: 0.3, yoyo: true, repeat: 1, ease: 'power1.inOut' }));
+  });
+})();
+</script>
+
 <style>
+  /* ── Hero banner ─────────────────────────────────────────── */
+  .hero-banner {
+    position: relative;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    min-height: 190px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 24px 48px -20px rgba(10, 25, 66, .45);
+    isolation: isolate;
+  }
+  .hero-banner-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: center 32%;
+    z-index: -2;
+  }
+  .hero-banner-overlay {
+    position: absolute; inset: 0; z-index: -1;
+    background: linear-gradient(92deg, rgba(8, 20, 52, .88) 0%, rgba(13, 42, 92, .72) 42%, rgba(13, 148, 136, .28) 78%, rgba(13, 148, 136, .08) 100%);
+  }
+  .hero-banner-content { padding: 30px 36px; max-width: 640px; color: #fff; }
+  .hero-banner-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+    color: #5eead4; margin-bottom: 8px;
+  }
+  .hero-banner-title {
+    font-size: 27px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15;
+    margin: 0 0 8px; color: #fff;
+  }
+  .hero-banner-sub { font-size: 13.5px; line-height: 1.55; color: rgba(226, 238, 255, .92); margin: 0 0 16px; }
+  .hero-banner-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-hero-ghost {
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .45);
+    backdrop-filter: blur(4px);
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: var(--radius); font-weight: 600; font-size: 13px;
+    text-decoration: none; transition: var(--transition);
+  }
+  .btn-hero-ghost:hover { background: rgba(255, 255, 255, .26); color: #fff; }
+  @media (max-width: 768px) {
+    .hero-banner { min-height: 170px; }
+    .hero-banner-content { padding: 22px; }
+    .hero-banner-title { font-size: 21px; }
+  }
+
   @media (max-width: 1100px) {
     .responsive-grid-3 { grid-template-columns: 1fr 1fr !important; }
   }

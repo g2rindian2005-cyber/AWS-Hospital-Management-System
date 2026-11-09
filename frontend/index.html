@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediCore — Hospital Management System</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=6">
   <style>
     body { background: var(--white); }
     .landing-page { min-height: 100vh; display: flex; flex-direction: column; }
@@ -25,7 +25,7 @@
     .landing-nav-logo .icon { width:36px; height:36px; background:linear-gradient(135deg,var(--blue-600),var(--teal-600)); border-radius:8px; display:flex; align-items:center; justify-content:center; }
 
     /* Hero */
-    .hero { padding: 80px 48px; text-align: center; max-width: 900px; margin: 0 auto; }
+    .hero { padding: 54px 48px 46px; text-align: center; max-width: 900px; margin: 0 auto; }
     .hero-badge { display:inline-flex; align-items:center; gap:6px; background:var(--blue-50); color:var(--blue-700); border:1px solid var(--blue-100); padding:5px 14px; border-radius:99px; font-size:12.5px; font-weight:600; margin-bottom:24px; }
     .hero h1 { font-size: 52px; font-weight: 800; color: var(--gray-900); line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 20px; }
     .hero h1 span { color: var(--blue-600); }
@@ -33,7 +33,7 @@
     .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 
     /* Features */
-    .features { padding: 64px 48px; background: var(--gray-50); }
+    .features { padding: 48px; background: var(--gray-50); }
     .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
     .features h2 { text-align: center; font-size: 32px; font-weight: 800; color: var(--gray-900); margin-bottom: 40px; }
     .feature-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 24px; transition: var(--transition-md); }
@@ -61,7 +61,7 @@
       <div class="icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       </div>
-      MediCore HMS
+      MediCore Hospital
     </div>
     <div style="display:flex; gap:10px;">
       <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
@@ -73,14 +73,14 @@
   <section class="hero">
     <div class="hero-badge">
       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      Powered by AWS Cloud
+      Hospital Operations, Simplified
     </div>
-    <h1>Premium <span>Hospital</span><br>Management System</h1>
-    <p>A complete cloud-native platform for managing patients, billing, clinical records, and medical staff — built on AWS Lambda, RDS, and API Gateway.</p>
+    <h1>Your hospital,<br><span>one dashboard.</span></h1>
+    <p>Admissions, doctors, diagnoses, billing and dues — every department works from the same live records, in real time. No paperwork, no spreadsheets, no guesswork.</p>
     <div class="hero-actions">
       <a href="login.html" class="btn btn-primary btn-lg">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-        Sign In to Dashboard
+        Launch Dashboard
       </a>
       <a href="dashboard.html" class="btn btn-outline btn-lg">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
@@ -88,10 +88,34 @@
       </a>
     </div>
   </section>
+  <!-- Photo band -->
+  <section class="photo-band">
+    <div class="photo-frame">
+      <img src="https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=1600&q=70" alt="MediCore surgical team at work">
+      <div class="photo-frame-caption">
+        <strong>Care, coordinated in real time</strong>
+        <span>Every team sees the same live patient record</span>
+      </div>
+    </div>
+    <div class="gallery-grid">
+      <figure class="gallery-card">
+        <img src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=800&q=70" alt="Patient ward">
+        <figcaption>Patient Wards</figcaption>
+      </figure>
+      <figure class="gallery-card">
+        <img src="https://images.unsplash.com/photo-1666214280557-f1b5022eb634?auto=format&fit=crop&w=800&q=70" alt="Doctor consultation">
+        <figcaption>Consultations</figcaption>
+      </figure>
+      <figure class="gallery-card">
+        <img src="https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=70" alt="Diagnostics laboratory">
+        <figcaption>Diagnostics Lab</figcaption>
+      </figure>
+    </div>
+  </section>
 
   <!-- Features -->
   <section class="features">
-    <h2>Everything you need to run a hospital</h2>
+    <h2>Built for every desk in the hospital</h2>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--blue-50);color:var(--blue-600);">
@@ -142,13 +166,13 @@
   <section class="tech">
     <h2>Built with</h2>
     <div class="tech-tags">
-      <span class="tech-tag">AWS Lambda</span>
-      <span class="tech-tag">Amazon RDS MySQL</span>
-      <span class="tech-tag">API Gateway</span>
-      <span class="tech-tag">Amazon S3</span>
-      <span class="tech-tag">Amazon SES</span>
-      <span class="tech-tag">EC2 + Nginx</span>
-      <span class="tech-tag">Terraform</span>
+      <span class="tech-tag">Serverless Backend</span>
+      <span class="tech-tag">Cloud MySQL Database</span>
+      <span class="tech-tag">REST API</span>
+      <span class="tech-tag">Cloud Storage</span>
+      <span class="tech-tag">Email Service</span>
+      <span class="tech-tag">Cloud Servers</span>
+      <span class="tech-tag">Infrastructure as Code</span>
       <span class="tech-tag">Python 3.11</span>
       <span class="tech-tag">Chart.js</span>
       <span class="tech-tag">Lucide Icons</span>
@@ -157,7 +181,7 @@
 
   <!-- Footer -->
   <footer class="landing-footer">
-    <span>© 2026 MediCore Hospital Management System</span>
+    <span>© 2026 MediCore Hospital · Created by Gokul Rathod</span>
     <a href="login.html" class="btn btn-primary btn-sm">Enter System →</a>
   </footer>
 
