@@ -91,3 +91,5 @@ This job needs two extra repository secrets:
 |---|---|
 | `DOCKERHUB_USERNAME` | `jawandockerhub` |
 | `DOCKERHUB_TOKEN` | A Docker Hub access token (Docker Hub → Account settings → Personal access tokens → New access token, Read & Write) |
+
+- Docker Hub secrets configured; the pipeline now also publishes `jawandockerhub/medicore-hospital` on each run.
