@@ -74,3 +74,20 @@ The workflow validates Terraform but does **not** run `terraform apply`. The cur
 ## Status
 
 - 2026-11-09: AWS deployment secrets configured in GitHub. Pushes to `main` now run the full pipeline, including deployment.
+
+## Docker image
+
+The pipeline also builds and pushes a Docker image of the frontend
+(Nginx serving the dashboard, wired to the live AWS API — see the
+repo's `Dockerfile`):
+
+- Image: `jawandockerhub/medicore-hospital`
+- Tags: `latest` and the commit SHA, on every push to `main`
+- Run it anywhere: `docker run -p 8080:80 jawandockerhub/medicore-hospital`
+
+This job needs two extra repository secrets:
+
+| Secret | Value |
+|---|---|
+| `DOCKERHUB_USERNAME` | `jawandockerhub` |
+| `DOCKERHUB_TOKEN` | A Docker Hub access token (Docker Hub → Account settings → Personal access tokens → New access token, Read & Write) |

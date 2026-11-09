@@ -1,0 +1,13 @@
+.git
+.github
+terraform
+backend
+database
+aws
+config
+docs
+email
+dist
+*.md
+*.zip
+.env
