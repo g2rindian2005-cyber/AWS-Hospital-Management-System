@@ -110,3 +110,21 @@ variable "lambda_timeout" {
   type        = number
   default     = 30
 }
+
+variable "auth_admin_username" {
+  description = "Admin username for POST /auth/login"
+  type        = string
+  default     = "admin"
+}
+
+variable "auth_admin_password" {
+  description = "Admin password for POST /auth/login (set in tfvars — NOT committed)"
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_secret" {
+  description = "Secret used to sign login JWTs (set in tfvars — NOT committed)"
+  type        = string
+  sensitive   = true
+}
