@@ -276,6 +276,18 @@ resource "archive_file" "lambda_zip" {
   output_path = "${path.module}/build/${local.lambda_services[count.index].name}.zip"
 }
 
+# Shared dependencies layer (PyMySQL + cryptography from requirements.txt).
+# Built locally: pip install -t layer/python PyMySQL cryptography, zipped as
+# build/deps-layer.zip. archive_file above only zips source code, so without
+# this layer every function fails with "No module named 'pymysql'".
+resource "aws_lambda_layer_version" "deps" {
+  filename            = "${path.module}/build/deps-layer.zip"
+  layer_name          = "${var.project_name}-deps"
+  compatible_runtimes = ["python3.11"]
+  source_code_hash    = filebase64sha256("${path.module}/build/deps-layer.zip")
+  description         = "PyMySQL + cryptography for hospital Lambda services"
+}
+
 # ============================================================
 # Lambda functions (in VPC so they reach RDS)
 # ============================================================
@@ -287,6 +299,7 @@ resource "aws_lambda_function" "service" {
   role             = aws_iam_role.lambda.arn
   filename         = archive_file.lambda_zip[count.index].output_path
   source_code_hash = archive_file.lambda_zip[count.index].output_base64sha256
+  layers           = [aws_lambda_layer_version.deps.arn]
   memory_size      = var.lambda_memory
   timeout          = var.lambda_timeout
 
