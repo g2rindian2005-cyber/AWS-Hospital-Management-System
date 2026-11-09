@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
 
@@ -22,7 +22,7 @@
           <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
         </svg>
       </div>
-      <span class="logo-name">MediCore HMS</span>
+      <span class="logo-name">MediCore Hospital</span>
     </div>
 
     <h1>Your hospital,<br>one dashboard.</h1>
@@ -34,7 +34,7 @@
         <span class="lbl">Modules</span>
       </div>
       <div class="login-stat">
-        <span class="num">AWS</span>
+        <span class="num">Cloud</span>
         <span class="lbl">Powered</span>
       </div>
       <div class="login-stat">
@@ -50,7 +50,6 @@
       <span style="background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500;">✦ Disease Records</span>
       <span style="background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500;">✦ Doctor Management</span>
       <span style="background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500;">✦ Appointments</span>
-      <span style="background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.85); padding:6px 14px; border-radius:99px; font-size:12px; font-weight:500;">✦ Lambda Serverless</span>
     </div>
   </div>
 
@@ -111,7 +110,7 @@
       </form>
 
       <p style="text-align:center; margin-top:20px; font-size:12px; color:#9ca3af;">
-        © 2026 MediCore Hospital Management System. All rights reserved.
+        © 2026 MediCore Hospital · by Gokul Rathod
       </p>
     </div>
   </div>
@@ -127,7 +126,6 @@
   try {
     const _apiBase = localStorage.getItem('hms_api_base');
     if (_apiBase) window.HMS_CONFIG.apiBase = _apiBase;
-    if (localStorage.getItem('hms_demo_mode') === '1') window.HMS_CONFIG.demoMode = true;
     if (localStorage.getItem('hms_dev_mock') === '1') window.HMS_CONFIG.devMock = true;
   } catch (e) {}
 </script>

@@ -15,7 +15,7 @@ set -x
 export DEBIAN_FRONTEND=noninteractive
 BUCKET="hospital-management-frontend-bucket"
 WEBROOT="/var/www/hospital"
-API_HOST="s5x2pju9d3.execute-api.us-east-1.amazonaws.com"
+API_HOST="7vh8ixexjf.execute-api.us-east-1.amazonaws.com"
 
 # Wait until apt + network work (NAT may still be provisioning)
 for i in $(seq 1 30); do

@@ -1927,3 +1927,87 @@ tbody tr:hover { background: #f5f8ff; }
   .login-form-panel { padding: 20px 16px; }
   .login-form-box { padding: 24px 20px 18px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   PREMIUM THEME v4 — "Advanced & Smooth" motion/polish layer.
+   Pure CSS only: hover/transition/keyframe effects that always
+   settle back to the natural visible state (no JS-driven hiding,
+   so content can never get stuck invisible).
+   ══════════════════════════════════════════════════════════════ */
+html { scroll-behavior: smooth; }
+::selection { background: rgba(37, 99, 235, .22); }
+
+/* Slim branded scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #334155, #0f766e); border-radius: 8px; border: 2px solid #f1f5f9; }
+
+/* Sidebar: glide + glow */
+.sidebar { transition: width .35s cubic-bezier(.4, 0, .2, 1); }
+.sidebar-nav a { position: relative; transition: all .25s cubic-bezier(.4, 0, .2, 1); }
+.sidebar-nav a:hover { transform: translateX(3px); }
+.sidebar-nav a.active { box-shadow: 0 8px 20px -8px rgba(45, 212, 191, .55), inset 0 1px 0 rgba(255, 255, 255, .18); }
+.sidebar-nav a:not(.active):hover { background: rgba(148, 184, 255, .12); color: #fff; }
+
+/* Topbar: deeper glass */
+.topbar { backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5); }
+
+/* Cards: lift on hover, everywhere */
+.card, .stat-card, .feature-card { transition: transform .3s cubic-bezier(.4, 0, .2, 1), box-shadow .3s cubic-bezier(.4, 0, .2, 1), border-color .3s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(13, 27, 62, .05), 0 20px 40px -16px rgba(13, 27, 62, .22); }
+.stat-card:hover { transform: translateY(-3px); }
+.stat-card:hover .stat-icon-wrap { transform: scale(1.08) rotate(-4deg); }
+.stat-icon-wrap { transition: transform .3s cubic-bezier(.34, 1.56, .64, 1); }
+
+/* Buttons: gradient glide + press feedback */
+.btn { transition: all .22s cubic-bezier(.4, 0, .2, 1); }
+.btn:active { transform: scale(.97); }
+.btn-primary { background-size: 160% 160%; background-position: 0% 50%; }
+.btn-primary:hover { background-position: 90% 50%; }
+.btn:focus-visible, a:focus-visible, button:focus-visible { outline: 3px solid rgba(45, 212, 191, .45); outline-offset: 2px; }
+
+/* Inputs: soft focus bloom */
+.form-control, input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="date"], select, textarea {
+  transition: border-color .22s, box-shadow .22s, background-color .22s;
+}
+.form-control:focus, input:focus, select:focus, textarea:focus {
+  border-color: #2dd4bf !important;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, .16), 0 6px 16px -8px rgba(13, 148, 136, .35);
+  outline: none;
+}
+
+/* Tables: gentle row glide */
+tbody tr { transition: background-color .2s; }
+tbody tr:hover { background-color: rgba(37, 99, 235, .045); }
+thead th { position: sticky; top: 0; z-index: 2; }
+
+/* Page entrance: content glides up once (CSS-only, always completes) */
+@keyframes hmsPageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.page-header { animation: hmsPageIn .5s cubic-bezier(.22, .8, .32, 1) both; }
+.hero-banner { animation: hmsPageIn .6s .05s cubic-bezier(.22, .8, .32, 1) both; }
+
+/* Modals + toasts: soft entrances */
+@keyframes hmsPopIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.modal, .modal-content, .confirm-dialog { animation: hmsPopIn .28s cubic-bezier(.22, .8, .32, 1) both; }
+.toast { animation: hmsPopIn .3s cubic-bezier(.22, .8, .32, 1) both; }
+
+/* Login: form card rises in, brand elements settle softly */
+@keyframes hmsRiseIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.login-form-box { animation: hmsRiseIn .55s cubic-bezier(.22, .8, .32, 1) both; }
+.login-brand-logo, .login-brand h1, .login-brand p, .login-brand-stats, .login-features { animation: hmsRiseIn .6s cubic-bezier(.22, .8, .32, 1) both; }
+.login-brand h1 { animation-delay: .06s; }
+.login-brand p { animation-delay: .12s; }
+.login-brand-stats { animation-delay: .18s; }
+.login-features { animation-delay: .24s; }
+.login-stat { transition: transform .25s; }
+.login-stat:hover { transform: translateY(-3px); }
+
+/* Landing: hero title gradient ink + card shine */
+.hero h1 span { background: linear-gradient(92deg, #2563eb, #0d9488); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.feature-card:hover { transform: translateY(-4px); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  html { scroll-behavior: auto; }
+}
