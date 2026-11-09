@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pending Dues — MediCore HMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Pending Dues</h1>
+          <p>Outstanding bills that require payment follow-up</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="payment.html" class="btn btn-primary btn-sm">Record Payment</a>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px;">
+        <div class="stat-card stat-red"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><div class="stat-info"><div class="stat-value" id="totalDueAmt">—</div><div class="stat-label">Total Outstanding</div></div></div>
+        <div class="stat-card stat-amber"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div><div class="stat-info"><div class="stat-value" id="dueCount">—</div><div class="stat-label">Bills Pending</div></div></div>
+        <div class="stat-card stat-purple"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-info"><div class="stat-value" id="duePatients">—</div><div class="stat-label">Patients with Dues</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="table-toolbar">
+          <div class="table-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="dueSearch" placeholder="Search by patient name…">
+          </div>
+          <div class="table-filters">
+            <select class="form-control" id="dueStatusFilter" style="width:auto; padding:7px 12px;">
+              <option value="">All Statuses</option>
+              <option>Pending</option><option>Partial</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Bill #</th><th>Patient</th><th>Description</th>
+                <th>Total Bill</th><th>Due Amount</th><th>Status</th><th>Bill Date</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="dueTable"><tr><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="duePagination"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'pending-dues', title: 'Pending Dues', subtitle: 'Billing' });
+
+  let allDues = [];
+  let duePage = 1;
+  const perPage = 10;
+
+  async function init() {
+    const data = await BillingAPI.dues();
+    allDues = data?.dues || [];
+
+    const totalAmt  = allDues.reduce((s,d) => s+Number(d.due_amount||0), 0);
+    const uniquePats = new Set(allDues.map(d => d.patient_id)).size;
+
+    document.getElementById('totalDueAmt').textContent = formatCurrency(totalAmt);
+    document.getElementById('dueCount').textContent    = allDues.length;
+    document.getElementById('duePatients').textContent = uniquePats;
+
+    renderTable();
+  }
+
+  function getFiltered() {
+    const q = (document.getElementById('dueSearch').value||'').toLowerCase();
+    const s = document.getElementById('dueStatusFilter').value;
+    return allDues.filter(d => {
+      const matchQ = !q || (d.patient_name||'').toLowerCase().includes(q);
+      const matchS = !s || d.status === s;
+      return matchQ && matchS;
+    });
+  }
+
+  function renderTable() {
+    const f = getFiltered();
+    const page = f.slice((duePage-1)*perPage, duePage*perPage);
+    document.getElementById('dueTable').innerHTML = page.length
+      ? page.map(d => `
+        <tr>
+          <td class="fw-600">#INV-${String(d.bill_id).padStart(5,'0')}</td>
+          <td>
+            <div class="patient-cell">
+              <div class="patient-avatar" style="width:28px;height:28px;font-size:10px;">${initials(d.patient_name||'')}</div>
+              <span>${d.patient_name||'Patient #'+d.patient_id}</span>
+            </div>
+          </td>
+          <td style="color:var(--gray-500); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${d.description||'—'}</td>
+          <td>${formatCurrency(d.net_amount)}</td>
+          <td class="fw-600" style="color:var(--red-600);">${formatCurrency(d.due_amount)}</td>
+          <td>${statusBadge(d.status)}</td>
+          <td class="text-muted">${formatDate(d.bill_date)}</td>
+          <td>
+            <a href="payment.html" class="btn btn-success btn-sm">Pay Now</a>
+          </td>
+        </tr>`).join('')
+      : `<tr><td colspan="8"><div class="empty-state">
+          <div class="empty-state-icon" style="color:var(--green-500);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <h4>No pending dues!</h4>
+          <p>All bills have been settled. Great work.</p>
+        </div></td></tr>`;
+    buildPagination(document.getElementById('duePagination'), f.length, duePage, perPage, p => { duePage=p; renderTable(); });
+  }
+
+  document.getElementById('dueSearch').addEventListener('input', () => { duePage=1; renderTable(); });
+  document.getElementById('dueStatusFilter').addEventListener('change', () => { duePage=1; renderTable(); });
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — MediCore HMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- App layout -->
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content" id="mainContent">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Dashboard Overview</h1>
+          <p>Welcome back, Administrator. Here's what's happening today.</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="patients/add-patient.html" class="btn btn-primary btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+            New Patient
+          </a>
+          <a href="billing/create-bill.html" class="btn btn-outline btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            Create Bill
+          </a>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="stat-grid" id="statGrid">
+        <div class="stat-card stat-blue" onclick="location.href='patients/view-patient.html'">
+          <div class="stat-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="statPatients">—</div>
+            <div class="stat-label">Total Patients</div>
+            <div class="stat-change up" id="statPatientsChange">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+              Registered
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-teal" onclick="location.href='doctors/appointments.html'">
+          <div class="stat-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/><path d="M9 12h6"/><path d="M12 12v6"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="statDoctors">—</div>
+            <div class="stat-label">Total Doctors</div>
+            <div class="stat-change up">Active Staff</div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-green" onclick="location.href='doctors/appointments.html'">
+          <div class="stat-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="statAppointments">—</div>
+            <div class="stat-label">Today's Appointments</div>
+            <div class="stat-change up">Today</div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-amber" onclick="location.href='billing/create-bill.html'">
+          <div class="stat-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="statRevenue">—</div>
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-change up">Billed</div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-red" onclick="location.href='billing/pending-dues.html'">
+          <div class="stat-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="statDues">—</div>
+            <div class="stat-label">Pending Dues</div>
+            <div class="stat-change down">Requires attention</div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-purple" onclick="location.href='diseases/disease-history.html'">
+          <div class="stat-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value" id="statDiseases">—</div>
+            <div class="stat-label">Active Treatments</div>
+            <div class="stat-change up">Under care</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions mb-24">
+        <a href="patients/add-patient.html" class="quick-action-btn">
+          <div class="qa-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+          </div>
+          Register Patient
+        </a>
+        <a href="billing/create-bill.html" class="quick-action-btn">
+          <div class="qa-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          </div>
+          Create Bill
+        </a>
+        <a href="doctors/assign-doctor.html" class="quick-action-btn">
+          <div class="qa-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          Assign Doctor
+        </a>
+        <a href="diseases/add-disease.html" class="quick-action-btn">
+          <div class="qa-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+          </div>
+          Add Diagnosis
+        </a>
+        <a href="billing/payment.html" class="quick-action-btn">
+          <div class="qa-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          Record Payment
+        </a>
+        <a href="doctors/appointments.html" class="quick-action-btn">
+          <div class="qa-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+          </div>
+          View Schedule
+        </a>
+      </div>
+
+      <!-- Charts + Doctor Availability -->
+      <div class="grid-2 mb-24">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <h3>Monthly Revenue</h3>
+              <p>Billing overview for the last 6 months</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" style="height:220px;">
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <h3>Patient Admissions</h3>
+              <p>Weekly registration statistics</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" style="height:220px;">
+              <canvas id="admissionsChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Patients + Doctor Availability + Notifications -->
+      <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:18px; margin-bottom:24px;" class="responsive-grid-3">
+
+        <!-- Recent Patients -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <h3>Recent Patients</h3>
+              <p>Latest patient registrations</p>
+            </div>
+            <a href="patients/view-patient.html" class="btn btn-ghost btn-sm">View all</a>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div id="recentPatientsList" style="padding:0 22px;">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Doctor Availability -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <h3>Doctors</h3>
+              <p>Availability today</p>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div id="doctorsList" style="padding:0 22px;">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <h3>Alerts</h3>
+              <p>System notifications</p>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div id="notifList" style="padding:0 22px;">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="card mb-24">
+        <div class="card-header">
+          <div class="card-header-left">
+            <h3>Recent Transactions</h3>
+            <p>Latest billing activity</p>
+          </div>
+          <a href="billing/create-bill.html" class="btn btn-ghost btn-sm">View all</a>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Bill #</th>
+                <th>Patient</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="recentBillsTable">
+              <tr><td colspan="7"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Appointments Table -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <h3>Doctor–Patient Assignments</h3>
+            <p>Active and upcoming appointments</p>
+          </div>
+          <a href="doctors/appointments.html" class="btn btn-ghost btn-sm">View all</a>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Specialization</th>
+                <th>Disease</th>
+                <th>Room</th>
+                <th>Appointment</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="assignmentsTable">
+              <tr><td colspan="8"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script>
+  initApp({ page: 'dashboard', title: 'Dashboard' });
+
+  /* ── Charts ──────────────────────────────────────────────── */
+  const chartDefaults = {
+    font: { family: 'Inter' },
+    color: '#6b7280',
+  };
+  Chart.defaults.font.family = 'Inter';
+  Chart.defaults.color = '#6b7280';
+
+  const revenueCanvas = document.getElementById('revenueChart');
+  const revenueChart = new Chart(revenueCanvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: [],
+        backgroundColor: 'rgba(37,99,235,0.15)',
+        borderColor: '#2563eb',
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ₹' + Number(ctx.raw).toLocaleString('en-IN') } } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { grid: { color: '#f3f4f6' }, border: { display: false },
+             ticks: { callback: v => '₹' + (v/1000) + 'k' } }
+      }
+    }
+  });
+
+  const admCtx = document.getElementById('admissionsChart').getContext('2d');
+  const admissionsChart = new Chart(admCtx, {
+    type: 'line',
+    data: {
+      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets: [{
+        label: 'Admissions',
+        data: [0, 0, 0, 0, 0, 0, 0],
+        borderColor: '#0d9488',
+        backgroundColor: 'rgba(13,148,136,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#0d9488',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { grid: { color: '#f3f4f6' }, border: { display: false },
+             ticks: { stepSize: 2 } }
+      }
+    }
+  });
+
+  /* ── Load Data ───────────────────────────────────────────── */
+  (async () => {
+    const [patients, bills, dues, diseases, doctors, assignments] = await Promise.all([
+      PatientsAPI.list(),
+      BillingAPI.listBills(),
+      BillingAPI.dues(),
+      DiseasesAPI.list(),
+      DoctorsAPI.list(),
+      DoctorsAPI.listAssignments(),
+    ]);
+
+    /* Stats */
+    document.getElementById('statPatients').textContent    = patients?.count ?? '—';
+    document.getElementById('statDoctors').textContent     = doctors?.count ?? '—';
+    const _td = new Date();
+    const _todayStr = _td.getFullYear() + '-' + String(_td.getMonth()+1).padStart(2,'0') + '-' + String(_td.getDate()).padStart(2,'0');
+    const todaysAppointments = (assignments?.assignments||[]).filter(a => String(a.appointment_date||'').slice(0,10) === _todayStr).length;
+    document.getElementById('statAppointments').textContent = todaysAppointments;
+    const totalRev = (bills?.bills||[]).reduce((s,b) => s + Number(b.net_amount||0), 0);
+    document.getElementById('statRevenue').textContent     = '₹' + totalRev.toLocaleString('en-IN');
+    const dueAmt = (dues?.dues||[]).reduce((s,d) => s + Number(d.due_amount||0), 0);
+    document.getElementById('statDues').textContent        = '₹' + dueAmt.toLocaleString('en-IN');
+    const active = (diseases?.diseases||[]).filter(d => d.status !== 'Recovered').length;
+    document.getElementById('statDiseases').textContent    = active;
+    document.getElementById('statPatientsChange').innerHTML =
+      `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+       ${patients?.count || 0} registered`;
+
+    /* Revenue chart: real monthly revenue — bills grouped by bill_date month, last 6 months */
+    (() => {
+      const now = new Date();
+      const buckets = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        buckets.push({ key, label: d.toLocaleDateString('en-IN', { month: 'short' }), total: 0 });
+      }
+      (bills?.bills||[]).forEach(b => {
+        if (!b.bill_date) return;
+        const bk = buckets.find(x => x.key === String(b.bill_date).slice(0,7));
+        if (bk) bk.total += Number(b.net_amount || 0);
+      });
+      revenueChart.data.labels = buckets.map(b => b.label);
+      revenueChart.data.datasets[0].data = buckets.map(b => b.total);
+      revenueChart.update();
+    })();
+
+    /* Admissions chart: real weekly admissions — patients grouped by registration_date weekday, current week (Mon–Sun) */
+    (() => {
+      const counts = [0,0,0,0,0,0,0];
+      const today = new Date();
+      const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay()+6)%7));
+      const nextMonday = new Date(monday); nextMonday.setDate(monday.getDate() + 7);
+      (patients?.patients||[]).forEach(p => {
+        if (!p.registration_date) return;
+        const d = new Date(p.registration_date);
+        if (d >= monday && d < nextMonday) counts[(d.getDay()+6)%7]++;
+      });
+      admissionsChart.data.datasets[0].data = counts;
+      admissionsChart.update();
+    })();
+
+    /* Recent patients */
+    const rp = document.getElementById('recentPatientsList');
+    rp.innerHTML = (patients?.patients||[]).slice(0,5).map(p => `
+      <div class="recent-item">
+        <div class="patient-avatar">${initials(p.first_name+' '+p.last_name)}</div>
+        <div class="recent-item-info">
+          <div class="recent-item-name">${p.first_name} ${p.last_name}</div>
+          <div class="recent-item-sub">PID-${String(p.patient_id).padStart(4,'0')} • ${p.blood_group||'—'}</div>
+        </div>
+        <div class="recent-item-right">
+          <span class="badge badge-info" style="font-size:11px;">${p.gender}</span>
+        </div>
+      </div>`).join('') || `<div class="empty-state"><p>No patients found</p></div>`;
+
+    /* Doctors list */
+    const dl = document.getElementById('doctorsList');
+    dl.innerHTML = (doctors?.doctors||[]).slice(0,5).map(d => `
+      <div class="doctor-card">
+        <div class="doctor-card-avatar">${initials(d.first_name+' '+d.last_name)}</div>
+        <div class="doctor-card-info">
+          <div class="doctor-card-name">${d.first_name} ${d.last_name}</div>
+          <div class="doctor-card-spec">${d.specialization}</div>
+        </div>
+        ${statusBadge(d.availability)}
+      </div>`).join('') || `<div class="empty-state"><p>No doctors</p></div>`;
+
+    /* Notifications */
+    const pendingDues = dues?.dues||[];
+    const notifItems = [
+      ...pendingDues.slice(0,2).map(d => ({
+        color:'#ef4444', text:`Pending bill: ${d.patient_name} — ₹${Number(d.due_amount).toLocaleString('en-IN')}`, time:'Now'
+      })),
+      { color:'#3b82f6', text:`${patients?.count||0} patients registered in the system`, time:'Today' },
+      { color:'#0d9488', text:`${doctors?.doctors?.filter(d=>d.availability==='Available').length||0} doctors available today`, time:'Today' },
+    ];
+    document.getElementById('notifList').innerHTML = notifItems.map(n => `
+      <div class="notification-item">
+        <div class="notif-dot-wrap"><div class="notif-dot" style="background:${n.color}"></div></div>
+        <div class="notif-body">
+          <div class="notif-text">${n.text}</div>
+          <div class="notif-time">${n.time}</div>
+        </div>
+      </div>`).join('');
+
+    /* Recent bills table */
+    document.getElementById('recentBillsTable').innerHTML =
+      (bills?.bills||[]).slice(0,6).map(b => `
+        <tr>
+          <td class="fw-600">#${b.bill_id}</td>
+          <td>
+            <div class="patient-cell">
+              <div class="patient-avatar" style="width:28px;height:28px;font-size:10px;">${initials(b.patient_name||'')}</div>
+              <span>${b.patient_name||'Patient #'+b.patient_id}</span>
+            </div>
+          </td>
+          <td style="color:var(--gray-500); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${b.description||'—'}</td>
+          <td class="fw-600">${formatCurrency(b.net_amount)}</td>
+          <td>${statusBadge(b.status)}</td>
+          <td style="color:var(--gray-500);">${formatDate(b.bill_date)}</td>
+          <td>
+            <a href="billing/create-bill.html" class="btn-icon btn-icon-view">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </a>
+          </td>
+        </tr>`).join('')
+      || `<tr><td colspan="7"><div class="empty-state"><p>No billing records</p></div></td></tr>`;
+
+    /* Assignments table */
+    document.getElementById('assignmentsTable').innerHTML =
+      (assignments?.assignments||[]).slice(0,8).map(a => `
+        <tr>
+          <td class="fw-600">#${a.assignment_id}</td>
+          <td>
+            <div class="patient-cell">
+              <div class="patient-avatar" style="width:28px;height:28px;font-size:10px;">${initials(a.patient_name||'')}</div>
+              <span>${a.patient_name||'#'+a.patient_id}</span>
+            </div>
+          </td>
+          <td class="fw-600">${a.doctor_name||'#'+a.doctor_id}</td>
+          <td style="color:var(--gray-500);">${a.specialization||'—'}</td>
+          <td>${a.disease_name||'—'}</td>
+          <td><span class="badge badge-gray">${a.room_number||'—'}</span></td>
+          <td style="color:var(--gray-500);">${(a.appointment_date||'').toString().slice(0,16)}</td>
+          <td>${statusBadge(a.status)}</td>
+        </tr>`).join('')
+      || `<tr><td colspan="8"><div class="empty-state"><p>No assignments</p></div></td></tr>`;
+  })();
+</script>
+
+<style>
+  @media (max-width: 1100px) {
+    .responsive-grid-3 { grid-template-columns: 1fr 1fr !important; }
+  }
+  @media (max-width: 768px) {
+    .responsive-grid-3 { grid-template-columns: 1fr !important; }
+  }
+</style>
+</body>
+</html>
