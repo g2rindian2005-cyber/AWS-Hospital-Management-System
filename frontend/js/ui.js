@@ -3,11 +3,13 @@
    Sidebar injection, Toast, Confirm Dialog, Helpers
    ============================================================ */
 
-/* ── Path prefix: auto-detected from current page depth ───── */
+/* ── Path prefix: '../' only when the page lives in a module subfolder.
+      Segment-count detection breaks on subpath hosting (e.g. GitHub Pages
+      project sites under /<repo>/), so detect the module folder by name. ── */
 function _prefix() {
-  // If pathname has 2+ slashes (e.g. /patients/view-patient.html) we need ../
   const parts = window.location.pathname.split('/').filter(Boolean);
-  return parts.length >= 2 ? '../' : '';
+  const MODULE_DIRS = ['patients', 'billing', 'diseases', 'doctors'];
+  return parts.some(p => MODULE_DIRS.includes(p)) ? '../' : '';
 }
 
 /* ── Build sidebar HTML with correct relative paths ──────── */
