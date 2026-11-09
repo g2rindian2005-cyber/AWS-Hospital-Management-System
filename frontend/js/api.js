@@ -4,17 +4,22 @@
    ============================================================ */
 
 const API_BASE_URL = window.HMS_CONFIG?.apiBase ||
+  (() => { try { return localStorage.getItem("hms_api_base"); } catch (e) { return null; } })() ||
   "https://abc123.execute-api.us-east-1.amazonaws.com/prod";
 
 /** Simple JWT-like token stored in localStorage after login */
 function getToken() {
-  return localStorage.getItem("hms_token") || "";
+  return localStorage.getItem("hms_token") || sessionStorage.getItem("hms_token") || "";
 }
-function setToken(t) {
-  localStorage.setItem("hms_token", t);
+function setToken(t, remember = true) {
+  const store = remember ? localStorage : sessionStorage;
+  const other = remember ? sessionStorage : localStorage;
+  other.removeItem("hms_token");
+  store.setItem("hms_token", t);
 }
 function clearToken() {
   localStorage.removeItem("hms_token");
+  sessionStorage.removeItem("hms_token");
 }
 
 /** Central request wrapper with auth + error handling */
@@ -37,9 +42,17 @@ async function request(path, options = {}) {
     }
     return data;
   } catch (err) {
-    // Fallback for local dev / when API not yet deployed: use mock data
-    console.warn(`[API] ${path} failed, using mock data:`, err.message);
-    return mockFallback(path, options);
+    // Mock data is strictly opt-in for local development (HMS_CONFIG.devMock).
+    // In production a network failure is a real error: tell the user, return null.
+    if (window.HMS_CONFIG?.devMock === true) {
+      console.warn(`[API] ${path} failed, using mock data (devMock):`, err.message);
+      return mockFallback(path, options);
+    }
+    console.warn(`[API] ${path} failed:`, err.message);
+    if (typeof showToast === "function") {
+      try { showToast("Unable to reach the server. Please check your connection and try again.", "error"); } catch (e) {}
+    }
+    return null;
   }
 }
 
@@ -94,6 +107,14 @@ const DoctorsAPI = {
   assign:         (body)    => request("/assignments",         { method: "POST",   body: JSON.stringify(body) }),
   updateAssign:   (id, b)   => request(`/assignments/${id}`,   { method: "PUT",    body: JSON.stringify(b) }),
   removeAssign:   (id)      => request(`/assignments/${id}`,   { method: "DELETE" }),
+};
+
+/* ---------------- AUTH ---------------- */
+const AuthAPI = {
+  // POST /auth/login — returns whatever the auth Lambda returns (e.g. { token, user }).
+  // This method stores nothing itself; the caller decides where to keep the token
+  // (localStorage for "remember me", sessionStorage otherwise).
+  login: (email, password) => request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
 };
 
 /* ---------------- Toast helper ---------------- */

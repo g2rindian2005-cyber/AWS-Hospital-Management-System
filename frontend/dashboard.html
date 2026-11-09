@@ -68,8 +68,8 @@
           </div>
           <div class="stat-info">
             <div class="stat-value" id="statAppointments">—</div>
-            <div class="stat-label">Appointments</div>
-            <div class="stat-change up">Active</div>
+            <div class="stat-label">Today's Appointments</div>
+            <div class="stat-change up">Today</div>
           </div>
         </div>
 
@@ -309,10 +309,10 @@
   const revenueChart = new Chart(revenueCanvas.getContext('2d'), {
     type: 'bar',
     data: {
-      labels: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
+      labels: [],
       datasets: [{
         label: 'Revenue (₹)',
-        data: [42000, 58000, 47000, 63000, 72000, 0],
+        data: [],
         backgroundColor: 'rgba(37,99,235,0.15)',
         borderColor: '#2563eb',
         borderWidth: 2,
@@ -332,13 +332,13 @@
   });
 
   const admCtx = document.getElementById('admissionsChart').getContext('2d');
-  new Chart(admCtx, {
+  const admissionsChart = new Chart(admCtx, {
     type: 'line',
     data: {
       labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
       datasets: [{
         label: 'Admissions',
-        data: [4, 7, 5, 9, 6, 3, 2],
+        data: [0, 0, 0, 0, 0, 0, 0],
         borderColor: '#0d9488',
         backgroundColor: 'rgba(13,148,136,0.08)',
         fill: true,
@@ -373,7 +373,10 @@
     /* Stats */
     document.getElementById('statPatients').textContent    = patients?.count ?? '—';
     document.getElementById('statDoctors').textContent     = doctors?.count ?? '—';
-    document.getElementById('statAppointments').textContent = assignments?.count ?? '—';
+    const _td = new Date();
+    const _todayStr = _td.getFullYear() + '-' + String(_td.getMonth()+1).padStart(2,'0') + '-' + String(_td.getDate()).padStart(2,'0');
+    const todaysAppointments = (assignments?.assignments||[]).filter(a => String(a.appointment_date||'').slice(0,10) === _todayStr).length;
+    document.getElementById('statAppointments').textContent = todaysAppointments;
     const totalRev = (bills?.bills||[]).reduce((s,b) => s + Number(b.net_amount||0), 0);
     document.getElementById('statRevenue').textContent     = '₹' + totalRev.toLocaleString('en-IN');
     const dueAmt = (dues?.dues||[]).reduce((s,d) => s + Number(d.due_amount||0), 0);
@@ -384,11 +387,39 @@
       `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
        ${patients?.count || 0} registered`;
 
-    /* Revenue chart: update current month bar with real data */
-    if (totalRev > 0) {
-      revenueChart.data.datasets[0].data[5] = totalRev;
+    /* Revenue chart: real monthly revenue — bills grouped by bill_date month, last 6 months */
+    (() => {
+      const now = new Date();
+      const buckets = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        buckets.push({ key, label: d.toLocaleDateString('en-IN', { month: 'short' }), total: 0 });
+      }
+      (bills?.bills||[]).forEach(b => {
+        if (!b.bill_date) return;
+        const bk = buckets.find(x => x.key === String(b.bill_date).slice(0,7));
+        if (bk) bk.total += Number(b.net_amount || 0);
+      });
+      revenueChart.data.labels = buckets.map(b => b.label);
+      revenueChart.data.datasets[0].data = buckets.map(b => b.total);
       revenueChart.update();
-    }
+    })();
+
+    /* Admissions chart: real weekly admissions — patients grouped by registration_date weekday, current week (Mon–Sun) */
+    (() => {
+      const counts = [0,0,0,0,0,0,0];
+      const today = new Date();
+      const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay()+6)%7));
+      const nextMonday = new Date(monday); nextMonday.setDate(monday.getDate() + 7);
+      (patients?.patients||[]).forEach(p => {
+        if (!p.registration_date) return;
+        const d = new Date(p.registration_date);
+        if (d >= monday && d < nextMonday) counts[(d.getDay()+6)%7]++;
+      });
+      admissionsChart.data.datasets[0].data = counts;
+      admissionsChart.update();
+    })();
 
     /* Recent patients */
     const rp = document.getElementById('recentPatientsList');

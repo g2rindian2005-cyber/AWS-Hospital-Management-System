@@ -1,142 +1,119 @@
-/* billing.js — logic for create-bill, payment, pending-dues pages */
+/* billing.js — shared library version for the billing pages.
+ *
+ * NOTE: Pages currently use inline scripts (see billing/create-bill.html,
+ * billing/payment.html, billing/pending-dues.html) and do NOT load this file.
+ * These functions are the shared-library equivalents, aligned to the REAL
+ * page element IDs and the existing API contract in js/api.js.
+ * Nothing here auto-runs: there is deliberately no DOMContentLoaded handler,
+ * so loading this file can never double-run a page's inline logic.
+ * Every function is null-safe and no-ops when its elements/APIs are absent.
+ */
 
-/** Load bills table (create-bill.html) */
+function _bEsc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function _bCur(n) { return typeof formatCurrency === "function" ? formatCurrency(n) : "₹" + Number(n || 0).toLocaleString("en-IN"); }
+function _bDate(d) { return typeof formatDate === "function" ? formatDate(d) : (d ? String(d).slice(0, 10) : "—"); }
+function _bBadge(s) { return typeof statusBadge === "function" ? statusBadge(s) : '<span class="badge badge-gray">' + _bEsc(s || "—") + "</span>"; }
+function _bToast(m, t) { if (typeof showToast === "function") showToast(m, t); }
+function _bVal(id) { const e = document.getElementById(id); return e ? e.value : ""; }
+
+/** Load bills table (create-bill.html: tbody#billTable). */
 async function loadBillsTable() {
-  const tbody = document.getElementById("billsTableBody");
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="7"><div class="spinner"></div></td></tr>`;
+  const tbody = document.getElementById("billTable") || document.getElementById("billsTableBody");
+  if (!tbody || typeof BillingAPI === "undefined") return;
+  tbody.innerHTML = typeof skeletonRows === "function" ? skeletonRows(8, 5) : '<tr><td colspan="8"><div class="spinner"></div></td></tr>';
   const data = await BillingAPI.listBills();
-  if (!data) return;
-  tbody.innerHTML = "";
-  (data.bills || []).forEach(b => {
-    const badge = b.status === "Paid" ? "badge-success" : b.status === "Partial" ? "badge-warning" : "badge-danger";
-    tbody.insertAdjacentHTML("beforeend", `<tr>
-      <td>#${b.bill_id}</td>
-      <td>${b.patient_name || "Patient #" + b.patient_id}</td>
-      <td>${b.description}</td>
-      <td>${b.category || "—"}</td>
-      <td>₹${Number(b.net_amount || b.amount).toFixed(2)}</td>
-      <td><span class="badge ${badge}">${b.status}</span></td>
-      <td>${(b.bill_date || "").toString().slice(0, 10)}</td>
-    </tr>`);
-  });
+  if (!data) { tbody.innerHTML = ""; return; }
+  const list = data.bills || [];
+  tbody.innerHTML = list.length ? list.map(b => `
+    <tr>
+      <td class="fw-600">#INV-${String(b.bill_id).padStart(5, "0")}</td>
+      <td>${_bEsc(b.patient_name || "Patient #" + b.patient_id)}</td>
+      <td>${_bEsc(b.description || "—")}</td>
+      <td><span class="badge badge-gray">${_bEsc(b.category || "—")}</span></td>
+      <td class="fw-600">${_bCur(b.net_amount != null ? b.net_amount : b.amount)}</td>
+      <td>${_bBadge(b.status)}</td>
+      <td>${_bEsc(_bDate(b.bill_date))}</td>
+      <td></td>
+    </tr>`).join("")
+    : '<tr><td colspan="8"><div class="empty-state"><h4>No bills found</h4><p>Create a new invoice to get started.</p></div></td></tr>';
 }
 
-/** Init create-bill form — also loads patient dropdown */
+/** Populate the patient dropdown of the create-bill modal (create-bill.html:
+ *  select#billPatient). The modal itself is submitted by the page's inline
+ *  saveBill() via button#saveBillBtn; this helper only fills the select. */
 async function initCreateBillForm() {
-  const form = document.getElementById("createBillForm");
   const patientSel = document.getElementById("billPatient");
-  if (!form) return;
-  if (patientSel) {
-    const data = await PatientsAPI.list();
-    if (data?.patients) {
-      patientSel.innerHTML = '<option value="">-- Select Patient --</option>' +
-        data.patients.map(p => `<option value="${p.patient_id}">${p.first_name} ${p.last_name} (#${p.patient_id})</option>`).join("");
-    }
+  if (!patientSel || typeof PatientsAPI === "undefined") return;
+  const data = await PatientsAPI.list();
+  if (data && data.patients) {
+    patientSel.innerHTML = '<option value="">— Select patient —</option>' +
+      data.patients.map(p => `<option value="${p.patient_id}">PID-${String(p.patient_id).padStart(4, "0")} — ${_bEsc(p.first_name)} ${_bEsc(p.last_name)}</option>`).join("");
   }
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(form);
-    const body = Object.fromEntries(fd.entries());
-    body.amount = parseFloat(body.amount);
-    body.discount = parseFloat(body.discount) || 0;
-    const res = await BillingAPI.createBill(body);
-    if (res) { showToast(`Bill #${res.bill_id} created`, "success"); form.reset(); loadBillsTable(); }
-  });
+  const dateEl = document.getElementById("billDate");
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split("T")[0];
 }
 
-/** Load pending dues table (pending-dues.html) */
+/** Load pending dues table (pending-dues.html: tbody#dueTable, #totalDueAmt). */
 async function loadPendingDues() {
-  const tbody = document.getElementById("duesTableBody");
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6"><div class="spinner"></div></td></tr>`;
+  const tbody = document.getElementById("dueTable") || document.getElementById("duesTableBody");
+  if (!tbody || typeof BillingAPI === "undefined") return;
+  tbody.innerHTML = typeof skeletonRows === "function" ? skeletonRows(8, 5) : '<tr><td colspan="8"><div class="spinner"></div></td></tr>';
   const data = await BillingAPI.dues();
-  if (!data) return;
-  tbody.innerHTML = "";
-  if (!data.dues?.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,0.4)">No pending dues 🎉</td></tr>`;
-    return;
-  }
+  if (!data) { tbody.innerHTML = ""; return; }
+  const list = data.dues || [];
   let total = 0;
-  data.dues.forEach(d => {
-    total += Number(d.due_amount);
-    tbody.insertAdjacentHTML("beforeend", `<tr>
-      <td>#${d.bill_id}</td>
-      <td>${d.patient_name || "Patient #" + d.patient_id}</td>
-      <td>${d.description}</td>
-      <td>₹${Number(d.net_amount).toFixed(2)}</td>
-      <td><span class="badge badge-danger">₹${Number(d.due_amount).toFixed(2)}</span></td>
-      <td>${(d.bill_date || "").toString().slice(0,10)}</td>
-    </tr>`);
-  });
-  const totalEl = document.getElementById("totalDues");
-  if (totalEl) totalEl.textContent = `₹${total.toFixed(2)}`;
+  tbody.innerHTML = list.length ? list.map(d => {
+    total += Number(d.due_amount || 0);
+    return `<tr>
+      <td class="fw-600">#INV-${String(d.bill_id).padStart(5, "0")}</td>
+      <td>${_bEsc(d.patient_name || "Patient #" + d.patient_id)}</td>
+      <td>${_bEsc(d.description || "—")}</td>
+      <td>${_bCur(d.net_amount)}</td>
+      <td class="fw-600">${_bCur(d.due_amount)}</td>
+      <td>${_bBadge(d.status)}</td>
+      <td>${_bEsc(_bDate(d.bill_date))}</td>
+      <td></td>
+    </tr>`;
+  }).join("")
+    : '<tr><td colspan="8"><div class="empty-state"><h4>No pending dues</h4><p>All bills are settled.</p></div></td></tr>';
+  const totalEl = document.getElementById("totalDueAmt") || document.getElementById("totalDues");
+  if (totalEl) totalEl.textContent = _bCur(total);
 }
 
-/** Init payment form (payment.html) */
+/** Populate the bill dropdown of the payment modal (payment.html:
+ *  select#payBillSelect). Recording is done by the page's inline
+ *  recordPayment() via button#recordPayBtn using fields #payAmount,
+ *  #payMethod, #payTxnId, #payDate — this helper only fills the select. */
 async function initPaymentForm() {
-  const form = document.getElementById("paymentForm");
-  const billSel = document.getElementById("paymentBill");
-  const patSel = document.getElementById("paymentPatient");
-  if (!form) return;
-  if (patSel) {
-    const data = await PatientsAPI.list();
-    if (data?.patients) {
-      patSel.innerHTML = '<option value="">-- Select Patient --</option>' +
-        data.patients.map(p => `<option value="${p.patient_id}">${p.first_name} ${p.last_name} (#${p.patient_id})</option>`).join("");
-    }
+  const billSel = document.getElementById("payBillSelect");
+  if (!billSel || typeof BillingAPI === "undefined") return;
+  const data = await BillingAPI.listBills();
+  if (data && data.bills) {
+    billSel.innerHTML = '<option value="">— Select bill —</option>' +
+      data.bills.filter(b => b.status !== "Paid").map(b =>
+        `<option value="${b.bill_id}">#INV-${String(b.bill_id).padStart(5, "0")} — ${_bEsc(b.patient_name || "Patient #" + b.patient_id)} (${_bCur(b.net_amount)})</option>`).join("");
   }
-  if (billSel) {
-    const data = await BillingAPI.listBills();
-    if (data?.bills) {
-      billSel.innerHTML = '<option value="">-- Select Bill --</option>' +
-        data.bills.filter(b => b.status !== "Paid").map(b =>
-          `<option value="${b.bill_id}" data-pid="${b.patient_id}">Bill #${b.bill_id} — ${b.description} (₹${b.net_amount})</option>`).join("");
-    }
-  }
-  // auto-select patient when bill is chosen
-  billSel?.addEventListener("change", () => {
-    const opt = billSel.selectedOptions[0];
-    if (opt && patSel) patSel.value = opt.dataset.pid;
-  });
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(form);
-    const body = Object.fromEntries(fd.entries());
-    body.amount_paid = parseFloat(body.amount_paid);
-    const res = await BillingAPI.recordPayment(body);
-    if (res) {
-      showToast(`Payment #${res.payment_id} recorded — receipt emailed`, "success");
-      form.reset();
-      loadPaymentsTable();
-    }
-  });
+  const dateEl = document.getElementById("payDate");
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split("T")[0];
 }
 
-/** Load payments table (payment.html) */
+/** Load payments table (payment.html: tbody#paymentTable). */
 async function loadPaymentsTable() {
-  const tbody = document.getElementById("paymentsTableBody");
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6"><div class="spinner"></div></td></tr>`;
+  const tbody = document.getElementById("paymentTable") || document.getElementById("paymentsTableBody");
+  if (!tbody || typeof BillingAPI === "undefined") return;
+  tbody.innerHTML = typeof skeletonRows === "function" ? skeletonRows(7, 5) : '<tr><td colspan="7"><div class="spinner"></div></td></tr>';
   const data = await BillingAPI.listPayments();
-  if (!data) return;
-  tbody.innerHTML = "";
-  (data.payments || []).forEach(p => {
-    tbody.insertAdjacentHTML("beforeend", `<tr>
-      <td>#${p.payment_id}</td>
-      <td>${p.patient_name || "Patient #" + p.patient_id}</td>
+  if (!data) { tbody.innerHTML = ""; return; }
+  const list = data.payments || [];
+  tbody.innerHTML = list.length ? list.map(p => `
+    <tr>
+      <td class="fw-600">#${p.payment_id}</td>
+      <td>${_bEsc(p.patient_name || "Patient #" + p.patient_id)}</td>
       <td>Bill #${p.bill_id}</td>
-      <td>₹${Number(p.amount_paid).toFixed(2)}</td>
-      <td><span class="badge badge-info">${p.payment_method}</span></td>
-      <td>${(p.payment_date || "").toString().slice(0,10)}</td>
-    </tr>`);
-  });
+      <td class="fw-600">${_bCur(p.amount_paid)}</td>
+      <td><span class="badge badge-info">${_bEsc(p.payment_method || "—")}</span></td>
+      <td>${_bEsc(p.transaction_id || "—")}</td>
+      <td>${_bEsc(_bDate(p.payment_date))}</td>
+    </tr>`).join("")
+    : '<tr><td colspan="7"><div class="empty-state"><h4>No payments found</h4></div></td></tr>';
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  loadBillsTable();
-  initCreateBillForm();
-  loadPendingDues();
-  initPaymentForm();
-  loadPaymentsTable();
-});
