@@ -66,19 +66,28 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t && (systemctl restart nginx || service nginx restart || nginx)
 systemctl enable nginx || true
 
-echo "=== Installing AWS CLI (for the S3 sync) ==="
-if ! command -v aws >/dev/null 2>&1; then
-  apt-get install -y awscli || apt-get install -y python3-pip && pip3 install --quiet awscli || true
-fi
-
-echo "=== Syncing frontend from S3 ==="
-if command -v aws >/dev/null 2>&1; then
-  for i in 1 2 3 4 5 6; do
-    aws s3 sync "s3://$BUCKET" "$WEBROOT" --no-sign-request && break
-    echo "s3 sync failed, retry $i"; sleep 15
+echo "=== Downloading frontend files from the public S3 website ==="
+# NOTE: `aws s3 sync` cannot work here — the bucket policy grants public
+# GetObject but NOT ListBucket, and sync needs to list. Plain HTTPS GETs
+# of the known files work fine, so fetch them one by one.
+SITE="http://$BUCKET.s3-website.us-east-1.amazonaws.com"
+FILES="index.html login.html dashboard.html reports.html settings.html sidebar.html
+css/style.css
+js/api.js js/ui.js js/patients.js js/billing.js js/diseases.js js/doctors.js
+patients/add-patient.html patients/view-patient.html patients/patient-history.html
+billing/create-bill.html billing/payment.html billing/pending-dues.html
+diseases/add-disease.html diseases/disease-history.html
+doctors/add-doctor.html doctors/assign-doctor.html doctors/appointments.html"
+for f in $FILES; do
+  mkdir -p "$WEBROOT/$(dirname "$f")"
+  for i in 1 2 3 4 5; do
+    curl -fsSL --max-time 30 "$SITE/$f" -o "$WEBROOT/$f" && break
+    echo "download $f failed, retry $i"; sleep 10
   done
-fi
+done
+ls -la "$WEBROOT"
 chown -R www-data:www-data "$WEBROOT" || true
+chmod -R a+rX "$WEBROOT" || true
 (systemctl restart nginx || service nginx restart || nginx -s reload) || true
 
 echo "=== Installing MySQL client (optional, for debugging RDS) ==="
