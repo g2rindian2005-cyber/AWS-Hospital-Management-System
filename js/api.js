@@ -115,6 +115,9 @@ const AuthAPI = {
   // This method stores nothing itself; the caller decides where to keep the token
   // (localStorage for "remember me", sessionStorage otherwise).
   login: (email, password) => request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  // POST /auth/verify-otp — step 2 of login: exchange the emailed code
+  // (plus the challenge token from step 1) for the session JWT.
+  verifyOtp: (challenge, otp) => request("/auth/verify-otp", { method: "POST", body: JSON.stringify({ challenge, otp }) }),
 };
 
 /* ---------------- Toast helper ---------------- */

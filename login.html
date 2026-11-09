@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 
@@ -67,10 +67,11 @@
         <span style="font-size:18px; font-weight:800; color:#111827; letter-spacing:-0.5px;">MediCore</span>
       </div>
 
-      <h2>Welcome back</h2>
-      <p class="login-subtitle">Sign in to your hospital administrator account</p>
+      <h2 id="loginTitle">Welcome back</h2>
+      <p class="login-subtitle" id="loginSubtitle">Sign in to your hospital administrator account</p>
 
       <form id="loginForm" novalidate>
+       <div id="step1">
         <div class="form-group">
           <label class="form-label" for="username">Username or Email</label>
           <input type="text" id="username" class="form-control" placeholder="admin" autocomplete="username" required>
@@ -98,6 +99,23 @@
           </label>
           <a href="#" class="forgot-link">Forgot password?</a>
         </div>
+       </div><!-- /step1 -->
+
+       <div id="step2" style="display:none">
+        <div class="form-group">
+          <label class="form-label" for="otpCode">Verification Code</label>
+          <input type="text" id="otpCode" class="form-control" placeholder="••••••"
+                 inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                 style="text-align:center; font-size:22px; letter-spacing:10px; font-weight:700;">
+          <span class="form-error" id="otpError">Please enter the 6-digit code.</span>
+        </div>
+        <p id="otpHint" style="font-size:13px; color:#6b7280; margin:2px 0 8px;"></p>
+        <div id="otpDemo" style="display:none; background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:10px;"></div>
+        <div class="login-options" style="margin-top:4px;">
+          <a href="#" class="forgot-link" id="otpBack">← Back</a>
+          <a href="#" class="forgot-link" id="otpResend">Resend code</a>
+        </div>
+       </div><!-- /step2 -->
 
         <button type="submit" class="btn-login" id="loginBtn">
           <span id="loginBtnText">Sign In</span>
@@ -146,13 +164,71 @@
   function setLoading(on) {
     btn.classList.toggle('loading', on);
     btn.disabled = on;
-    document.getElementById('loginBtnText').textContent = on ? 'Signing in\u2026' : 'Sign In';
+    if (on) document.getElementById('loginBtnText').textContent = 'Please wait\u2026';
+    else setStepUI();
     document.getElementById('loginBtnIcon').innerHTML = on ? SPINNER : ARROW;
   }
 
-  /* The login itself */
+  /* The login itself — two steps: password, then emailed OTP */
+  let step = 1, challenge = null, savedU = '', savedP = '';
+
+  function setStepUI() {
+    document.getElementById('step1').style.display = step === 1 ? 'block' : 'none';
+    document.getElementById('step2').style.display = step === 2 ? 'block' : 'none';
+    document.getElementById('loginTitle').textContent = step === 1 ? 'Welcome back' : 'Check your inbox';
+    document.getElementById('loginSubtitle').textContent = step === 1
+      ? 'Sign in to your hospital administrator account'
+      : 'Enter the 6-digit code we emailed you';
+    document.getElementById('loginBtnText').textContent = step === 1 ? 'Sign In' : 'Verify & Sign In';
+  }
+
+  function finishLogin(token, name) {
+    const remember = document.getElementById('rememberMe').checked;
+    setToken(token, remember);
+    (remember ? localStorage : sessionStorage).setItem('hms_user', name || savedU);
+    showToast('Welcome back, Administrator!', 'success', 'Logged In');
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
+  }
+
+  async function requestOtp(u, p) {
+    const data = await AuthAPI.login(u, p);                // POST /auth/login
+    if (data && data.token) { finishLogin(data.token, data.user && data.user.name); return; }
+    if (!data || !data.otp_required) throw new Error('Login failed');
+    challenge = data.challenge;
+    step = 2;
+    setStepUI();
+    document.getElementById('otpHint').textContent = data.email_hint
+      ? `Code sent to ${data.email_hint} · expires in 5 minutes`
+      : 'Your code expires in 5 minutes';
+    const demo = document.getElementById('otpDemo');
+    if (data.dev_otp) {
+      demo.style.display = 'block';
+      demo.innerHTML = 'Email delivery is not active yet — your code is: <strong style="font-size:16px; letter-spacing:3px;">' + data.dev_otp + '</strong>';
+    } else {
+      demo.style.display = 'none';
+    }
+    document.getElementById('otpCode').focus();
+  }
+
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (step === 2) {
+      const otp = document.getElementById('otpCode').value.trim();
+      document.getElementById('otpCode').classList.toggle('is-invalid', otp.length !== 6);
+      if (otp.length !== 6) return;
+      setLoading(true);
+      try {
+        const data = await AuthAPI.verifyOtp(challenge, otp);   // POST /auth/verify-otp -> { token }
+        if (!data || !data.token) throw new Error('Bad code');
+        finishLogin(data.token, data.user && data.user.name);
+      } catch (err) {
+        setLoading(false);
+        showToast('Invalid or expired code. Please try again.', 'error', 'Verification Failed');
+      }
+      return;
+    }
+
     const u = document.getElementById('username').value.trim();
     const p = pwd.value;
     document.getElementById('username').classList.toggle('is-invalid', !u);
@@ -161,20 +237,29 @@
 
     setLoading(true);
     try {
-      const data = await AuthAPI.login(u, p);              // POST /auth/login -> { token, user }
-      if (!data || !data.token) throw new Error('Login failed');
-
-      const remember = document.getElementById('rememberMe').checked;
-      setToken(data.token, remember);                      // save the JWT
-      (remember ? localStorage : sessionStorage)
-        .setItem('hms_user', (data.user && data.user.name) || u);
-
-      showToast('Welcome back, Administrator!', 'success', 'Logged In');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
+      savedU = u; savedP = p;
+      await requestOtp(u, p);
+      setLoading(false);
     } catch (err) {
       setLoading(false);
       showToast('Invalid username or password. Please try again.', 'error', 'Authentication Failed');
     }
+  });
+
+  /* Resend a fresh code / go back to step 1 */
+  document.getElementById('otpResend').addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      await requestOtp(savedU, savedP);
+      showToast('A new code was sent.', 'success', 'Code Resent');
+    } catch (err) {
+      showToast('Could not resend the code. Please sign in again.', 'error', 'Resend Failed');
+    }
+  });
+  document.getElementById('otpBack').addEventListener('click', (e) => {
+    e.preventDefault();
+    step = 1; challenge = null;
+    setStepUI();
   });
 
   /* Clear the red error border while typing */
