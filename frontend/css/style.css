@@ -2011,3 +2011,39 @@ thead th { position: sticky; top: 0; z-index: 2; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   html { scroll-behavior: auto; }
 }
+
+/* ================================================================
+   THEME v5 — IMAGERY & FINISHING TOUCHES
+   Photo bands, gallery and page banners, plus micro-polish.
+   Transform/opacity only — content can never be hidden by motion.
+   ================================================================ */
+.photo-band { max-width: 1100px; margin: 6px auto 10px; padding: 0 24px; }
+.photo-frame { position: relative; border-radius: 22px; overflow: hidden; box-shadow: 0 24px 50px -18px rgba(15,45,90,.35); }
+.photo-frame img { width: 100%; height: 340px; object-fit: cover; display: block; transition: transform 1.2s cubic-bezier(.22,1,.36,1); }
+.photo-frame:hover img { transform: scale(1.04); }
+.photo-frame-caption { position: absolute; left: 0; right: 0; bottom: 0; padding: 42px 26px 18px;
+  background: linear-gradient(transparent, rgba(8,30,60,.78)); color: #fff; display: flex; flex-direction: column; gap: 2px; }
+.photo-frame-caption strong { font-size: 19px; letter-spacing: -.3px; }
+.photo-frame-caption span { font-size: 13.5px; opacity: .85; }
+.gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+.gallery-card { position: relative; border-radius: 16px; overflow: hidden; margin: 0; box-shadow: 0 12px 28px -12px rgba(15,45,90,.28); }
+.gallery-card img { width: 100%; height: 170px; object-fit: cover; display: block; transition: transform 1s cubic-bezier(.22,1,.36,1); }
+.gallery-card:hover img { transform: scale(1.07); }
+.gallery-card figcaption { position: absolute; left: 12px; bottom: 10px; background: rgba(255,255,255,.92); color: #0f2d5a;
+  font-size: 12.5px; font-weight: 700; padding: 5px 12px; border-radius: 99px; backdrop-filter: blur(4px); }
+@media (max-width: 760px) { .gallery-grid { grid-template-columns: 1fr; } .photo-frame img { height: 230px; } }
+
+.page-banner { position: relative; border-radius: 16px; overflow: hidden; margin-bottom: 20px;
+  background-size: cover; background-position: center 30%; min-height: 118px; display: flex; align-items: flex-end;
+  box-shadow: 0 14px 30px -14px rgba(15,45,90,.35); }
+.page-banner::before { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(8,32,66,.82), rgba(10,80,110,.45) 60%, rgba(10,80,110,.12)); }
+.page-banner-text { position: relative; padding: 18px 22px; color: #fff; }
+.page-banner-text h3 { margin: 0 0 2px; font-size: 20px; letter-spacing: -.3px; }
+.page-banner-text p { margin: 0; font-size: 13px; opacity: .85; }
+
+/* Micro-polish: living gradient on primary buttons, softer selection */
+.btn-primary, .btn-login { background-size: 160% 100%; transition: background-position .5s ease, transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease, filter .25s ease; }
+.btn-primary:hover, .btn-login:hover { background-position: 90% 0; }
+::selection { background: rgba(13,148,136,.28); }
+img { -webkit-user-drag: none; }
