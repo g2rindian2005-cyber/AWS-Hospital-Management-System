@@ -1,5 +1,5 @@
 /* ============================================================
-   MediCore HMS — Shared UI Utilities
+   MediCore Hospital — Shared UI Utilities
    Sidebar injection, Toast, Confirm Dialog, Helpers
    ============================================================ */
 
@@ -23,7 +23,7 @@ function buildSidebarHTML() {
       <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
     </svg>
   </div>
-  <span class="sidebar-brand-name">Medi<span>Core</span> HMS</span>
+  <span class="sidebar-brand-name">Medi<span>Core</span> Hospital</span>
   <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse sidebar" aria-label="Collapse sidebar">
     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
   </button>
@@ -205,6 +205,7 @@ function buildSidebarHTML() {
       <div class="sidebar-user-role">Hospital Admin</div>
     </div>
   </div>
+  <div style="padding:10px 16px 0; font-size:11px; letter-spacing:.02em; color:rgba(226,238,255,.45);">MediCore Hospital · by Gokul Rathod</div>
   <a href="${p}login.html" class="nav-item" id="logoutBtn" style="color:var(--red-600); margin-top:4px;">
     <span class="nav-icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
