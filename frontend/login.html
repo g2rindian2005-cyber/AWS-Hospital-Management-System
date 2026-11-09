@@ -120,104 +120,66 @@
 <div id="toast-container"></div>
 
 <script src="js/ui.js"></script>
-<script>
-  /* Build HMS_CONFIG from locally stored preferences (set on the Settings page). */
-  window.HMS_CONFIG = window.HMS_CONFIG || {};
-  try {
-    const _apiBase = localStorage.getItem('hms_api_base');
-    if (_apiBase) window.HMS_CONFIG.apiBase = _apiBase;
-    if (localStorage.getItem('hms_dev_mock') === '1') window.HMS_CONFIG.devMock = true;
-  } catch (e) {}
-</script>
 <script src="js/api.js"></script>
 <script>
-  /* Login is JWT-only; the demo credentials note is never shown. */
-  /* Show/hide password */
-  const pwdInput = document.getElementById('password');
-  document.getElementById('togglePassword').addEventListener('click', function() {
-    const show = pwdInput.type === 'password';
-    pwdInput.type = show ? 'text' : 'password';
-    document.getElementById('eyeIcon').innerHTML = show
-      ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" x2="23" y1="1" y2="23"/>`
-      : `<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>`;
+  /* ══ JWT login — simple ════════════════════════════════════
+     1. Send the username + password to POST /auth/login.
+     2. The auth Lambda checks them and returns a signed JWT.
+     3. Save the JWT and open the dashboard.
+     That is the only way in — no demo or local shortcut. */
+
+  const EYE_ON  = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+  const EYE_OFF = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" x2="23" y1="1" y2="23"/>';
+  const ARROW   = '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>';
+  const SPINNER = '<circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="3" stroke-linecap="round"/>';
+
+  /* Show / hide password */
+  const pwd = document.getElementById('password');
+  document.getElementById('togglePassword').addEventListener('click', () => {
+    const show = pwd.type === 'password';
+    pwd.type = show ? 'text' : 'password';
+    document.getElementById('eyeIcon').innerHTML = show ? EYE_OFF : EYE_ON;
   });
 
-  /* Login form */
+  /* Loading state on the Sign In button */
+  const btn = document.getElementById('loginBtn');
+  function setLoading(on) {
+    btn.classList.toggle('loading', on);
+    btn.disabled = on;
+    document.getElementById('loginBtnText').textContent = on ? 'Signing in\u2026' : 'Sign In';
+    document.getElementById('loginBtnIcon').innerHTML = on ? SPINNER : ARROW;
+  }
+
+  /* The login itself */
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const u = document.getElementById('username').value.trim();
-    const p = document.getElementById('password').value;
-    let valid = true;
+    const p = pwd.value;
+    document.getElementById('username').classList.toggle('is-invalid', !u);
+    pwd.classList.toggle('is-invalid', !p);
+    if (!u || !p) return;
 
-    if (!u) {
-      document.getElementById('username').classList.add('is-invalid');
-      valid = false;
-    } else {
-      document.getElementById('username').classList.remove('is-invalid');
-    }
-    if (!p) {
-      document.getElementById('password').classList.add('is-invalid');
-      valid = false;
-    } else {
-      document.getElementById('password').classList.remove('is-invalid');
-    }
-    if (!valid) return;
+    setLoading(true);
+    try {
+      const data = await AuthAPI.login(u, p);              // POST /auth/login -> { token, user }
+      if (!data || !data.token) throw new Error('Login failed');
 
-    /* Loading state */
-    const btn = document.getElementById('loginBtn');
-    const resetBtn = () => {
-      btn.classList.remove('loading');
-      document.getElementById('loginBtnText').textContent = 'Sign In';
-      document.getElementById('loginBtnIcon').innerHTML =
-        `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>`;
-    };
-    btn.classList.add('loading');
-    document.getElementById('loginBtnText').textContent = 'Signing in…';
-    document.getElementById('loginBtnIcon').innerHTML =
-      `<circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
-       <path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="3" stroke-linecap="round"/>`;
+      const remember = document.getElementById('rememberMe').checked;
+      setToken(data.token, remember);                      // save the JWT
+      (remember ? localStorage : sessionStorage)
+        .setItem('hms_user', (data.user && data.user.name) || u);
 
-    /* Remember-me decides where the token lives. */
-    const remember = document.getElementById('rememberMe').checked;
-    const store = remember ? localStorage : sessionStorage;
-    const otherStore = remember ? sessionStorage : localStorage;
-    const finishLogin = (token, displayName) => {
-      otherStore.removeItem('hms_token');
-      otherStore.removeItem('hms_user');
-      store.setItem('hms_token', token);
-      store.setItem('hms_user', displayName || u);
-      if (remember) localStorage.setItem('hms_remember', '1');
-      else localStorage.removeItem('hms_remember');
       showToast('Welcome back, Administrator!', 'success', 'Logged In');
       setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
-    };
-
-    /* JWT authentication — POST /auth/login via AuthAPI is the ONLY way in.
-       The auth Lambda verifies the credentials and returns a signed JWT;
-       no demo/local shortcut exists on this page anymore. */
-    let authData = null;
-    try {
-      if (typeof AuthAPI !== 'undefined') authData = await AuthAPI.login(u, p);
-    } catch (err) { authData = null; }
-    const jwt = authData?.token || authData?.access_token || authData?.jwt || authData?.data?.token || null;
-
-    if (jwt) {
-      finishLogin(jwt, authData.user?.name || authData.user?.email || authData.name || u);
-      return;
+    } catch (err) {
+      setLoading(false);
+      showToast('Invalid username or password. Please try again.', 'error', 'Authentication Failed');
     }
-
-    resetBtn();
-    showToast(
-      'Invalid username or password. Please try again.',
-      'error', 'Authentication Failed');
   });
 
-  /* Remove validation on input */
-  ['username','password'].forEach(id => {
-    document.getElementById(id).addEventListener('input', function() {
-      this.classList.remove('is-invalid');
-    });
-  });
+  /* Clear the red error border while typing */
+  ['username', 'password'].forEach(id =>
+    document.getElementById(id).addEventListener('input', e => e.target.classList.remove('is-invalid')));
 </script>
 </body>
 </html>
