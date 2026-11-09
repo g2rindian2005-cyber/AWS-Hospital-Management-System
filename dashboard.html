@@ -541,8 +541,10 @@
       .from('.page-header', { y: 18, opacity: 0, duration: 0.4 }, '-=0.20')
       .from('.hero-banner', { y: 22, opacity: 0, scale: 0.99, duration: 0.5, clearProps: 'transform' }, '-=0.18')
       .from('.hero-banner-content > *', { y: 14, opacity: 0, duration: 0.35, stagger: 0.06 }, '-=0.25')
-      .from('.stat-card', { y: 30, opacity: 0, duration: 0.45, stagger: 0.06, clearProps: 'transform' }, '-=0.18')
-      .from('.quick-action-btn', { y: 16, opacity: 0, duration: 0.4, stagger: 0.05, clearProps: 'transform' }, '-=0.30')
+      /* NOTE: .stat-card and .quick-action-btn are deliberately NOT animated
+         here. In production they reproducibly stayed invisible after a
+         from() tween (verified in a real browser: correct box, clickable,
+         but never painted), so they render statically — always visible. */
       .from('.grid-2 .card, .responsive-grid-3 .card, .page-content > .card', { y: 24, opacity: 0, duration: 0.5, stagger: 0.08, clearProps: 'transform' }, '-=0.25');
     /* Slow Ken Burns drift on the hero photo */
     gsap.to('.hero-banner-img', { scale: 1.09, duration: 22, ease: 'sine.inOut', yoyo: true, repeat: -1 });
