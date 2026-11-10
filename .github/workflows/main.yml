@@ -1,15 +1,7 @@
+
 name: CI/CD Pipeline
 
-# Build and test every pull request. A push to main (or a manual run from
-# main) also deploys the application to the existing AWS environment:
-# Lambda code + dependency layer, then the frontend to S3, with an
-# optional EC2 refresh when an SSH key secret is configured.
-#
-# Infrastructure itself is still managed by Terraform from the repo's
-# terraform/ directory; this workflow deliberately does NOT run
-# `terraform apply`, because the Terraform state is not stored in GitHub.
-
-"on":
+on:
   push:
     branches: [main]
   pull_request:
@@ -28,53 +20,75 @@ env:
   PROJECT_NAME: ${{ vars.PROJECT_NAME || 'hospital' }}
   API_BASE_URL: ${{ vars.API_BASE_URL || 'https://7vh8ixexjf.execute-api.us-east-1.amazonaws.com/prod' }}
   FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET || 'hospital-management-frontend-bucket' }}
+
+  # Lambda function names: change these to your actual AWS names
+  PATIENT_LAMBDA: ${{ vars.PATIENT_LAMBDA || 'hospital-patient-service' }}
+  BILLING_LAMBDA: ${{ vars.BILLING_LAMBDA || 'hospital-billing-service' }}
+  DISEASE_LAMBDA: ${{ vars.DISEASE_LAMBDA || 'hospital-disease-service' }}
+  DOCTOR_LAMBDA: ${{ vars.DOCTOR_LAMBDA || 'hospital-doctor-service' }}
+  AUTH_LAMBDA: ${{ vars.AUTH_LAMBDA || 'hospital-auth-service' }}
+
   PYTHON_VERSION: "3.11"
   NODE_VERSION: "20"
   TERRAFORM_VERSION: "1.9.8"
 
 jobs:
+
+  # ==========================================
+  # JOB 1: BUILD AND TEST
+  # ==========================================
+
   build-test:
     name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Set up Terraform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
 
-      - name: Test frontend JavaScript syntax
+      - name: Validate Frontend JavaScript
         run: python scripts/validate_frontend.py
 
-      - name: Compile all Lambda Python code
+      - name: Compile Lambda Python Code
         run: python -m compileall -q backend
 
-      - name: Install Lambda test dependencies
-        run: python -m pip install -r backend/patient-lambda/requirements.txt
+      - name: Install Lambda Dependencies
+        run: |
+          python -m pip install -r backend/patient-lambda/requirements.txt
 
-      - name: Import-test Lambda handlers
+      - name: Import Test Lambda Handlers
         run: |
           set -euo pipefail
-          for dir in backend/patient-lambda backend/billing-lambda backend/disease-lambda backend/doctor-lambda; do
-            echo "Importing $dir"
-            (cd "$dir" && python -c "import lambda_function; assert callable(lambda_function.lambda_handler)")
+
+          for dir in \
+            backend/patient-lambda \
+            backend/billing-lambda \
+            backend/disease-lambda \
+            backend/doctor-lambda; do
+
+            echo "Testing $dir"
+
+            (cd "$dir" && python -c \
+              "import lambda_function; assert callable(lambda_function.lambda_handler)")
           done
 
-      - name: Smoke test OTP auth Lambda
+      - name: Smoke Test Auth Lambda
         env:
           AUTH_USERNAME: admin
           AUTH_EMAIL: admin@example.com
@@ -87,19 +101,27 @@ jobs:
           response = lambda_function.lambda_handler(
               {"httpMethod": "OPTIONS", "path": "/auth/login"}, None
           )
+
           assert response["statusCode"] == 200, response
           print("Auth Lambda smoke test passed")
           PY
 
-      - name: Build Lambda dependency layer
+      - name: Build Lambda Dependency Layer
         run: |
           set -euo pipefail
+
           rm -rf terraform/build/layer terraform/build/deps-layer.zip dist
+
           mkdir -p terraform/build/layer/python dist/layer
+
           python -m pip install \
             -r backend/patient-lambda/requirements.txt \
             --target terraform/build/layer/python
-          (cd terraform/build/layer && zip -qr ../deps-layer.zip python)
+
+          cd terraform/build/layer
+          zip -qr ../deps-layer.zip python
+          cd "$GITHUB_WORKSPACE"
+
           cp terraform/build/deps-layer.zip dist/layer/deps-layer.zip
 
       - name: Validate Terraform
@@ -109,23 +131,34 @@ jobs:
           terraform init -backend=false -input=false
           terraform validate
 
-      - name: Build frontend and Lambda packages
+      - name: Build Frontend and Lambda Packages
         run: |
           set -euo pipefail
+
           mkdir -p dist/frontend dist/lambda
+
           cp -R frontend/. dist/frontend/
+
           python - <<'PY'
           import os
           from pathlib import Path
 
           api_base = os.environ["API_BASE_URL"].rstrip("/")
           api_file = Path("dist/frontend/js/api.js")
+
           source = api_file.read_text(encoding="utf-8")
+
           placeholder = "https://abc123.execute-api.us-east-1.amazonaws.com/prod"
+
           if placeholder not in source:
-              raise SystemExit("API placeholder was not found in frontend/js/api.js")
-          api_file.write_text(source.replace(placeholder, api_base), encoding="utf-8")
-          print(f"Frontend API configured for {api_base}")
+              raise SystemExit("API placeholder not found in frontend/js/api.js")
+
+          api_file.write_text(
+              source.replace(placeholder, api_base),
+              encoding="utf-8"
+          )
+
+          print(f"Frontend API configured: {api_base}")
           PY
 
           declare -A services=(
@@ -135,189 +168,306 @@ jobs:
             [doctor]="doctor-lambda"
             [auth]="auth-lambda"
           )
-          for name in "${!services[@]}"; do
-            (cd "backend/${services[$name]}" && zip -qr "$GITHUB_WORKSPACE/dist/lambda/$name.zip" . -x '__pycache__/*' '*.pyc')
+
+          for name in patient billing disease doctor auth; do
+            dir="${services[$name]}"
+
+            (
+              cd "backend/$dir"
+              zip -qr "$GITHUB_WORKSPACE/dist/lambda/$name.zip" . \
+                -x '__pycache__/*' '*.pyc'
+            )
           done
+
           find dist -type f -print
 
-      - name: Package build artifact
+      - name: Package Build Artifact
         run: zip -qr hospital-build.zip dist
 
-      - name: Upload build artifact
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: hospital-build-${{ github.sha }}
           path: hospital-build.zip
           retention-days: 14
 
+
+  # ==========================================
+  # JOB 2: DEPLOY TO AWS
+  # ==========================================
+
   deploy:
     name: Deploy to AWS
     needs: build-test
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    if: >
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
     runs-on: ubuntu-latest
+
     environment:
       name: production
       url: http://67.202.28.176/login.html
+
     concurrency:
       group: production-deploy
       cancel-in-progress: false
 
     steps:
-      - name: Check out repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download build artifact
+      - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
           name: hospital-build-${{ github.sha }}
 
-      - name: Unpack build artifact
+      - name: Unpack Build Artifact
         run: unzip -q hospital-build.zip
 
-      - name: Check required deployment secrets
+      - name: Check AWS Secrets
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          if [ -z "${AWS_ACCESS_KEY_ID:-}" ] || [ -z "${AWS_SECRET_ACCESS_KEY:-}" ]; then
-            echo "::error::Missing GitHub secrets. Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY under Settings -> Secrets and variables -> Actions."
+          if [ -z "${AWS_ACCESS_KEY_ID:-}" ] || \
+             [ -z "${AWS_SECRET_ACCESS_KEY:-}" ]; then
+
+            echo "::error::AWS credentials are missing"
             exit 1
           fi
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Verify AWS account
-        run: aws sts get-caller-identity
+      - name: Verify AWS Account
+        run: |
+          aws sts get-caller-identity
 
-      - name: Deploy Lambda functions and dependency layer
+      # Check all Lambda names BEFORE deployment
+      - name: Verify Lambda Functions Exist
+        env:
+          PATIENT_LAMBDA: ${{ env.PATIENT_LAMBDA }}
+          BILLING_LAMBDA: ${{ env.BILLING_LAMBDA }}
+          DISEASE_LAMBDA: ${{ env.DISEASE_LAMBDA }}
+          DOCTOR_LAMBDA: ${{ env.DOCTOR_LAMBDA }}
+          AUTH_LAMBDA: ${{ env.AUTH_LAMBDA }}
         run: |
           set -euo pipefail
+
+          for function_name in \
+            "$PATIENT_LAMBDA" \
+            "$BILLING_LAMBDA" \
+            "$DISEASE_LAMBDA" \
+            "$DOCTOR_LAMBDA" \
+            "$AUTH_LAMBDA"; do
+
+            echo "Checking Lambda: $function_name"
+
+            if ! aws lambda get-function \
+              --function-name "$function_name" >/dev/null 2>&1; then
+
+              echo "::error::Lambda function not found: $function_name"
+              echo "Check the Lambda name in AWS Console and GitHub Variables."
+              exit 1
+            fi
+
+            echo "Found: $function_name"
+          done
+
+      - name: Deploy Lambda Functions and Dependency Layer
+        env:
+          PATIENT_LAMBDA: ${{ env.PATIENT_LAMBDA }}
+          BILLING_LAMBDA: ${{ env.BILLING_LAMBDA }}
+          DISEASE_LAMBDA: ${{ env.DISEASE_LAMBDA }}
+          DOCTOR_LAMBDA: ${{ env.DOCTOR_LAMBDA }}
+          AUTH_LAMBDA: ${{ env.AUTH_LAMBDA }}
+        run: |
+          set -euo pipefail
+
+          echo "Publishing Lambda dependency layer..."
+
           layer_arn=$(aws lambda publish-layer-version \
             --layer-name "$PROJECT_NAME-deps" \
             --description "GitHub Actions $GITHUB_SHA" \
-            --zip-file "fileb://dist/layer/deps-layer.zip" \
+            --zip-file fileb://dist/layer/deps-layer.zip \
             --compatible-runtimes python3.11 \
-            --query LayerVersionArn --output text)
-          echo "Published dependency layer: $layer_arn"
+            --query LayerVersionArn \
+            --output text)
 
-          for service in patient billing disease doctor auth; do
-            function_name="$PROJECT_NAME-$service-service"
+          echo "Published layer: $layer_arn"
+
+          deploy_lambda() {
+            local service="$1"
+            local function_name="$2"
+            local zip_file="dist/lambda/$service.zip"
+
             echo "Deploying $function_name"
+
             aws lambda update-function-code \
               --function-name "$function_name" \
-              --zip-file "fileb://dist/lambda/$service.zip" \
-              --publish >/dev/null
-            aws lambda wait function-updated --function-name "$function_name"
+              --zip-file "fileb://$zip_file" \
+              --publish
+
+            aws lambda wait function-updated \
+              --function-name "$function_name"
+
             aws lambda update-function-configuration \
               --function-name "$function_name" \
-              --layers "$layer_arn" >/dev/null
-            aws lambda wait function-updated --function-name "$function_name"
-          done
+              --layers "$layer_arn"
 
-      - name: Deploy frontend to S3
+            aws lambda wait function-updated \
+              --function-name "$function_name"
+
+            echo "Successfully deployed: $function_name"
+          }
+
+          deploy_lambda patient "$PATIENT_LAMBDA"
+          deploy_lambda billing "$BILLING_LAMBDA"
+          deploy_lambda disease "$DISEASE_LAMBDA"
+          deploy_lambda doctor "$DOCTOR_LAMBDA"
+          deploy_lambda auth "$AUTH_LAMBDA"
+
+      - name: Deploy Frontend to S3
         run: |
           set -euo pipefail
-          aws s3 sync dist/frontend/ "s3://$FRONTEND_BUCKET/" --delete
-          echo "Frontend deployed to s3://$FRONTEND_BUCKET/"
 
-      - name: Refresh EC2 frontend when SSH is configured
+          aws s3 sync dist/frontend/ \
+            "s3://$FRONTEND_BUCKET/" \
+            --delete
+
+          echo "Frontend deployed to S3"
+
+      - name: Refresh EC2 Frontend When SSH Is Configured
         continue-on-error: true
         env:
           EC2_HOST: ${{ vars.EC2_HOST }}
           EC2_USER: ${{ vars.EC2_USER }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
+          set -euo pipefail
+
           if [ -z "${EC2_SSH_KEY:-}" ]; then
-            echo "EC2_SSH_KEY is not configured; skipping the EC2 copy. The S3 deployment above still succeeded."
+            echo "EC2 SSH key not configured. Skipping EC2 refresh."
             exit 0
           fi
 
           host="${EC2_HOST:-67.202.28.176}"
           user="${EC2_USER:-ubuntu}"
+
           mkdir -p ~/.ssh
+
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/hospital-key.pem
           chmod 600 ~/.ssh/hospital-key.pem
+
           ssh-keyscan -H "$host" >> ~/.ssh/known_hosts
 
           tar -C dist/frontend -czf /tmp/frontend.tgz .
-          scp -i ~/.ssh/hospital-key.pem /tmp/frontend.tgz "$user@$host:/tmp/frontend.tgz"
+
+          scp -i ~/.ssh/hospital-key.pem \
+            /tmp/frontend.tgz \
+            "$user@$host:/tmp/frontend.tgz"
+
           ssh -i ~/.ssh/hospital-key.pem "$user@$host" '
             sudo mkdir -p /var/www/hospital &&
             sudo tar -xzf /tmp/frontend.tgz -C /var/www/hospital &&
             sudo chown -R www-data:www-data /var/www/hospital &&
             (sudo systemctl reload nginx || sudo service nginx reload || true)
           '
-          echo "EC2 frontend refreshed at $host"
 
-      - name: Smoke test live deployment
+          echo "EC2 frontend refreshed"
+
+      - name: Smoke Test Live Deployment
         run: |
           set -euo pipefail
+
           site="http://$FRONTEND_BUCKET.s3-website.$AWS_REGION.amazonaws.com"
 
           curl -fsS "$site/login.html" -o /tmp/login.html
+
           grep -q 'id="step2"' /tmp/login.html
+
           curl -fsS "$site/js/api.js" -o /tmp/api.js
+
           grep -Fq "$API_BASE_URL" /tmp/api.js
 
-          auth_status=$(curl -s -o /tmp/auth-smoke.json -w '%{http_code}' \
+          auth_status=$(curl -s -o /tmp/auth-smoke.json \
+            -w '%{http_code}' \
             -X POST "$API_BASE_URL/auth/login" \
             -H 'Content-Type: application/json' \
             -d '{"email":"ci-smoke-invalid","password":"invalid"}')
+
           if [ "$auth_status" != "401" ]; then
-            echo "Expected auth smoke test to return 401, got $auth_status"
+            echo "Expected 401 but received $auth_status"
             cat /tmp/auth-smoke.json
             exit 1
           fi
-          echo "Live smoke tests passed"
 
-      - name: Write deployment summary
+          echo "Live deployment smoke tests passed"
+
+      - name: Write Deployment Summary
         if: always()
         run: |
           {
-            echo "## Hospital CI/CD deployment"
+            echo "## Hospital CI/CD Deployment"
             echo ""
             echo "- Commit: $GITHUB_SHA"
+            echo "- Region: $AWS_REGION"
             echo "- API: $API_BASE_URL"
-            echo "- S3 site: http://$FRONTEND_BUCKET.s3-website.$AWS_REGION.amazonaws.com/login.html"
-            echo "- EC2 site: http://67.202.28.176/login.html"
-            echo "- Lambdas: patient, billing, disease, doctor, auth"
+            echo "- S3: $FRONTEND_BUCKET"
+            echo "- Patient Lambda: $PATIENT_LAMBDA"
+            echo "- Billing Lambda: $BILLING_LAMBDA"
+            echo "- Disease Lambda: $DISEASE_LAMBDA"
+            echo "- Doctor Lambda: $DOCTOR_LAMBDA"
+            echo "- Auth Lambda: $AUTH_LAMBDA"
           } >> "$GITHUB_STEP_SUMMARY"
+
+
+  # ==========================================
+  # JOB 3: BUILD AND PUSH DOCKER IMAGES
+  # ==========================================
 
   docker:
     name: Build & Push Docker Image
     needs: build-test
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    if: >
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Check Docker Hub secrets
+      - name: Check Docker Hub Secrets
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          if [ -z "${DOCKERHUB_USERNAME:-}" ] || [ -z "${DOCKERHUB_TOKEN:-}" ]; then
-            echo "::error::Missing GitHub secrets. Add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN under Settings -> Secrets and variables -> Actions."
+          if [ -z "${DOCKERHUB_USERNAME:-}" ] || \
+             [ -z "${DOCKERHUB_TOKEN:-}" ]; then
+
+            echo "::error::Docker Hub credentials missing"
             exit 1
           fi
 
-      - name: Log in to Docker Hub
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push image
+      - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -326,7 +476,7 @@ jobs:
             jawandockerhub/medicore-hospital:latest
             jawandockerhub/medicore-hospital:${{ github.sha }}
 
-      - name: Build and push backend image
+      - name: Build and Push Backend Image
         uses: docker/build-push-action@v6
         with:
           context: .
