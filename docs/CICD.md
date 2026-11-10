@@ -95,3 +95,5 @@ This job needs two extra repository secrets:
 - Docker Hub secrets configured; the pipeline now also publishes `jawandockerhub/medicore-hospital` on each run.
 
 - A backend image (`Dockerfile.backend` + `backend/local_server.py`) and a full local stack (`docker-compose.yml`: MySQL + backend + frontend) were added; the pipeline docker job also publishes `jawandockerhub/medicore-hospital-backend`.
+
+- Manual deployment run requested by Gokul on 2026-11-10.
