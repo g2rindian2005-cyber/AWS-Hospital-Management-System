@@ -14,6 +14,14 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.4"
     }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.2"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 }
 
@@ -42,7 +50,7 @@ locals {
     AUTH_USERNAME   = var.auth_admin_username
     AUTH_EMAIL      = var.ses_from_email
     AUTH_PASSWORD   = var.auth_admin_password
-    JWT_SECRET      = var.jwt_secret
+    JWT_SECRET      = local.jwt_secret
     SMTP_USERNAME   = var.ses_smtp_username
     SMTP_PASSWORD   = var.ses_smtp_password
     SMTP_FROM_EMAIL = var.ses_from_email
@@ -281,16 +289,46 @@ resource "archive_file" "lambda_zip" {
   output_path = "${path.module}/build/${local.lambda_services[count.index].name}.zip"
 }
 
+# Generated only when var.jwt_secret is empty (e.g. a fresh clone with
+# no tfvars): keeps `terraform plan` prompt-free without committing a
+# real secret to git. The value lives only in Terraform state.
+resource "random_password" "jwt_secret" {
+  count   = var.jwt_secret == "" ? 1 : 0
+  length  = 48
+  special = false
+}
+
+locals {
+  jwt_secret = var.jwt_secret != "" ? var.jwt_secret : random_password.jwt_secret[0].result
+}
+
+# Build the dependency layer zip automatically, so a fresh clone can run
+# `terraform plan/apply` directly — no manual build step. build_layer.py
+# downloads Lambda-compatible wheels (manylinux/CPython 3.11) on any OS
+# and zips them as build/deps-layer.zip.
+resource "null_resource" "build_deps_layer" {
+  triggers = {
+    requirements = filebase64sha256("${path.module}/../backend/patient-lambda/requirements.txt")
+    builder      = filebase64sha256("${path.module}/build_layer.py")
+  }
+
+  provisioner "local-exec" {
+    command = "python3 ${path.module}/build_layer.py"
+  }
+}
+
 # Shared dependencies layer (PyMySQL + cryptography from requirements.txt).
-# Built locally: pip install -t layer/python PyMySQL cryptography, zipped as
-# build/deps-layer.zip. archive_file above only zips source code, so without
-# this layer every function fails with "No module named 'pymysql'".
+# archive_file above only zips source code, so without this layer every
+# function fails with "No module named 'pymysql'".
 resource "aws_lambda_layer_version" "deps" {
   filename            = "${path.module}/build/deps-layer.zip"
   layer_name          = "${var.project_name}-deps"
   compatible_runtimes = ["python3.11"]
-  source_code_hash    = filebase64sha256("${path.module}/build/deps-layer.zip")
-  description         = "PyMySQL + cryptography for hospital Lambda services"
+  # Hash the requirements instead of the zip: the zip is generated during
+  # apply, so it cannot be read at plan time on a fresh clone.
+  source_code_hash = null_resource.build_deps_layer.triggers["requirements"]
+  description      = "PyMySQL + cryptography for hospital Lambda services"
+  depends_on       = [null_resource.build_deps_layer]
 }
 
 # ============================================================

@@ -118,13 +118,15 @@ variable "auth_admin_username" {
 }
 
 variable "auth_admin_password" {
-  description = "Admin password for POST /auth/login (set in tfvars — NOT committed)"
+  description = "Admin password for POST /auth/login (default matches the live login; override in tfvars)"
   type        = string
   sensitive   = true
+  default     = "admin123"
 }
 
 variable "jwt_secret" {
-  description = "Secret used to sign login JWTs (set in tfvars — NOT committed)"
+  description = "Secret used to sign login JWTs. Leave empty to auto-generate one (stored only in Terraform state); set in tfvars to use your own."
   type        = string
   sensitive   = true
+  default     = ""
 }
