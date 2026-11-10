@@ -7,9 +7,9 @@
 #   docker build --build-arg API_BASE_URL=https://<api-id>.execute-api.us-east-1.amazonaws.com/prod -t medicore-hospital .
 #   docker run -p 8080:80 medicore-hospital
 #
-FROM nginx:1.27-alpine
+FROM docker.io/library/nginx:1.27-alpine
 
-ARG API_BASE_URL=https://7vh8ixexjf.execute-api.us-east-1.amazonaws.com/prod
+ARG API_BASE_URL=https://nxtj3v8r6c.execute-api.us-east-1.amazonaws.com/prod
 
 # Nginx site config: gzip, long cache for static assets, SPA fallback.
 RUN rm /etc/nginx/conf.d/default.conf && cat > /etc/nginx/conf.d/hospital.conf <<'NGINX'
