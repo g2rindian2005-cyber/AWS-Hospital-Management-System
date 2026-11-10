@@ -259,10 +259,15 @@ jobs:
           set -euo pipefail
           site="http://$FRONTEND_BUCKET.s3-website.$AWS_REGION.amazonaws.com"
 
-          curl -fsS "$site/login.html" -o /tmp/login.html
+          echo "Checking S3 site: $site"
+          curl -fsS "$site/login.html" -o /tmp/login.html \
+            || { echo "::error::S3 site did not answer at $site — is the frontend bucket deployed?"; exit 1; }
           grep -q 'id="step2"' /tmp/login.html
           curl -fsS "$site/js/api.js" -o /tmp/api.js
           grep -Fq "$API_BASE_URL" /tmp/api.js
+          echo "Checking API: $API_BASE_URL"
+          curl -s -o /dev/null "$API_BASE_URL/auth/login" \
+            || { echo "::error::API did not resolve at $API_BASE_URL — the backend (API Gateway/Lambda) is not deployed, or API_BASE_URL is stale. After a fresh Terraform deploy, set the repo variable API_BASE_URL to the new terraform output."; exit 1; }
 
           auth_status=$(curl -s -o /tmp/auth-smoke.json -w '%{http_code}' \
             -X POST "$API_BASE_URL/auth/login" \
