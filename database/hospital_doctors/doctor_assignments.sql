@@ -24,25 +24,23 @@ CREATE TABLE IF NOT EXISTS doctor_assignments (
     INDEX idx_assign_status (status)
 ) ENGINE=InnoDB;
 
--- View: all assignments with patient + doctor + disease context
--- NOTE: cross-database queries work because all 4 DBs live on the
--- same RDS MySQL instance and are queried via fully-qualified names.
+-- View: all assignments with doctor context (LOCAL tables only).
+-- NOTE (6-RDS topology): every database lives on its OWN RDS instance,
+-- so cross-database JOINs are impossible. patient_name and disease_name
+-- are attached by the doctor Lambda at runtime via live reads against
+-- the patients / diseases instances (see backend/doctor-lambda).
 CREATE OR REPLACE VIEW v_assignments_full AS
 SELECT
     a.assignment_id,
     a.patient_id,
-    CONCAT(p.first_name, ' ', p.last_name) AS patient_name,
     a.doctor_id,
     CONCAT(d.first_name, ' ', d.last_name) AS doctor_name,
     d.specialization,
     a.disease_id,
-    dis.disease_name,
     a.appointment_date,
     a.status,
     a.room_number,
     a.notes
 FROM doctor_assignments a
-LEFT JOIN hospital_patients.patients   p   ON a.patient_id = p.patient_id
 LEFT JOIN doctors                       d   ON a.doctor_id  = d.doctor_id
-LEFT JOIN hospital_diseases.diseases  dis ON a.disease_id = dis.disease_id
 ORDER BY a.appointment_date DESC;

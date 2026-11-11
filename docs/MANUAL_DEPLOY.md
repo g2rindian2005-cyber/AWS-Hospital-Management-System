@@ -39,7 +39,7 @@ stop and get the state file before retrying.
 Useful values afterwards:
 
 ```bash
-terraform output   # api_gateway_url, s3_website_url, ec2_public_ip, rds_endpoint
+terraform output   # api_gateway_url, s3_website_url, ec2_public_ip, rds_endpoints
 ```
 
 ## 3. Upload the frontend to S3
@@ -61,6 +61,10 @@ aws s3 sync /tmp/site s3://hospital-management-frontend-bucket/ --delete
 ## 4. Initialise the databases (first deploy only)
 
 RDS is private, so this runs through the EC2 instance (same VPC).
+**6-RDS topology:** every database lives on its OWN RDS instance —
+`terraform output rds_endpoints` lists all six addresses. Run each
+SQL file against **its own database's endpoint** (patients files →
+patients endpoint, billing files → billing endpoint, and so on).
 SSH in with the `hospital-key` pair, install a MySQL client, and run
 the repo's SQL in this order (order matters):
 
@@ -73,7 +77,9 @@ the repo's SQL in this order (order matters):
 6. `database/hospital_billing/bills.sql`
 7. `database/hospital_lab/laboratory.sql`
 8. `database/hospital_pharmacy/pharmacy.sql`
-9. `database/sample_data.sql`
+9. Sample data — per instance: `patients_sample_data.sql` (patients endpoint),
+   `doctors_sample_data.sql` (doctors), `diseases_sample_data.sql` (diseases),
+   `billing_sample_data.sql` (billing) — split from `database/sample_data.sql`
 10. `database/hospital_lab/lab_sample_data.sql`
 11. `database/hospital_pharmacy/pharmacy_sample_data.sql`
 

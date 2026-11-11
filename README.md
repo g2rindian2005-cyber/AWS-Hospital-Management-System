@@ -30,23 +30,27 @@ AWS-Hospital-Management-System/
 └── requirements.txt   .gitignore   README.md
 ```
 
-## The 4 Databases (all synchronised via shared `patient_id`)
-| # | Database             | Purpose                                       |
-|---|----------------------|-----------------------------------------------|
-| 1 | hospital_patients    | Patient names & personal info                 |
-| 2 | hospital_billing     | Bills, payment history & pending dues         |
-| 3 | hospital_diseases    | Patient disease / diagnosis records            |
-| 4 | hospital_doctors     | Doctors & doctor↔patient assignments           |
+## The 6 Databases (all synchronised via shared `patient_id`)
+| # | Database             | Own RDS instance | Purpose                                |
+|---|----------------------|------------------|----------------------------------------|
+| 1 | hospital_patients    | hospital-patients   | Patient names & personal info       |
+| 2 | hospital_billing     | hospital-billing    | Bills, payment history & pending dues |
+| 3 | hospital_diseases    | hospital-diseases   | Patient disease / diagnosis records |
+| 4 | hospital_doctors     | hospital-doctors    | Doctors & doctor↔patient assignments |
+| 5 | hospital_lab         | hospital-lab        | Lab tests & lab orders              |
+| 6 | hospital_pharmacy    | hospital-pharmacy   | Medicines & prescriptions           |
 
-All 4 live on **one RDS MySQL instance**, so the Lambdas use
-cross-database JOINs to keep everything synchronised. The shared
-`patient_id` key links them together.
+Each database lives on **its own RDS MySQL instance** (6 in total).
+Cross-database JOINs are impossible across instances, so the Lambdas
+read each other's data **live** — every service knows every instance's
+host (`DB_HOST_PATIENTS`, `DB_HOST_BILLING`, …) and attaches names and
+summaries per request. The shared `patient_id` key links them together.
 
 ## Tech Stack
 - **Frontend**: HTML5, CSS3 (3D transforms, glassmorphism, animations), Vanilla JS
-- **Backend**: Python 3.11 AWS Lambda (4 microservices)
+- **Backend**: Python 3.11 AWS Lambda (7 microservices)
 - **API**: Amazon API Gateway (REST, per-base-path proxy)
-- **Database**: Amazon RDS MySQL 8.0 (4 logical databases)
+- **Database**: Amazon RDS MySQL 8.0 — **6 instances, one per database**
 - **Storage**: Amazon S3 (static website) + EC2/Nginx
 - **Email**: Amazon SES SMTP
 - **Infra**: Terraform (VPC, RDS, Lambda, API GW, S3, EC2, IAM)
@@ -93,20 +97,29 @@ terraform apply -var-file=terraform.tfvars
 ```
 Wait ~10-15 minutes (RDS takes the longest).
 
-## STEP 4 — Initialise the 4 Databases
-Use the RDS endpoint from Terraform outputs:
+## STEP 4 — Initialise the 6 Databases
+Each database has its OWN RDS endpoint — get them all from Terraform:
 ```bash
-RDS=$(terraform output -raw rds_endpoint)
-echo "RDS endpoint: $RDS"
-
-mysql -h $RDS -u admin -p < database/hospital_patients/patients.sql
-mysql -h $RDS -u admin -p < database/hospital_billing/bills.sql
-mysql -h $RDS -u admin -p < database/hospital_billing/payments.sql
-mysql -h $RDS -u admin -p < database/hospital_diseases/diseases.sql
-mysql -h $RDS -u admin -p < database/hospital_doctors/doctors.sql
-mysql -h $RDS -u admin -p < database/hospital_doctors/doctor_assignments.sql
-mysql -h $RDS -u admin -p < database/sample_data.sql
+terraform output rds_endpoints
+# { patients = "...", billing = "...", diseases = "...",
+#   doctors = "...", lab = "...", pharmacy = "..." }
 ```
+Run each SQL file against **its own instance's endpoint** (through the
+EC2 instance — RDS is private), e.g.:
+```bash
+mysql -h <patients-endpoint> -u admin -p < database/hospital_patients/patients.sql
+mysql -h <billing-endpoint>  -u admin -p < database/hospital_billing/bills.sql
+mysql -h <billing-endpoint>  -u admin -p < database/hospital_billing/payments.sql
+mysql -h <diseases-endpoint> -u admin -p < database/hospital_diseases/diseases.sql
+mysql -h <doctors-endpoint>  -u admin -p < database/hospital_doctors/doctors.sql
+mysql -h <doctors-endpoint>  -u admin -p < database/hospital_doctors/doctor_assignments.sql
+mysql -h <lab-endpoint>      -u admin -p < database/hospital_lab/laboratory.sql
+mysql -h <pharmacy-endpoint> -u admin -p < database/hospital_pharmacy/pharmacy.sql
+```
+Sample data: `database/sample_data.sql` spans the patients/billing/
+diseases/doctors instances (run each part against its instance), plus
+`lab_sample_data.sql` and `pharmacy_sample_data.sql` on theirs. See
+`docs/MANUAL_DEPLOY.md` for the full ordered list.
 
 ## STEP 5 — Wire the Frontend to API Gateway
 ```bash

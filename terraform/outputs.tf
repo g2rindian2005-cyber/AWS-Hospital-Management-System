@@ -2,9 +2,9 @@
 # Outputs — printed after `terraform apply`
 # ============================================================
 
-output "rds_endpoint" {
-  description = "RDS MySQL endpoint — set as DB_HOST"
-  value       = aws_db_instance.hospital_mysql.address
+output "rds_endpoints" {
+  description = "RDS MySQL endpoints — one instance per database"
+  value       = { for k, inst in aws_db_instance.hospital : k => inst.address }
 }
 
 output "api_gateway_url" {
@@ -32,8 +32,10 @@ output "configuration_reminder" {
   value       = <<EOF
   ─────────────────────────────────────────────
   1. Run the SQL schema:
-     mysql -h ${aws_db_instance.hospital_mysql.address} -u admin -p < database/hospital_patients/patients.sql
-     mysql -h ${aws_db_instance.hospital_mysql.address} -u admin -p < database/hospital_billing/bills.sql
+     Each database lives on its OWN RDS instance — run each SQL file
+     against its own endpoint (see the rds_endpoints output), e.g.:
+     mysql -h <patients-endpoint> -u admin -p < database/hospital_patients/patients.sql
+     mysql -h <billing-endpoint>  -u admin -p < database/hospital_billing/bills.sql
      ... (see aws/rds/mysql-configuration.md)
 
   2. Set API URL in frontend/js/api.js:

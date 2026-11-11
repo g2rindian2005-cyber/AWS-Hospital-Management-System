@@ -11,7 +11,7 @@ Routes:
     GET    /diseases/active                 -> all active diseases
 """
 import json
-from db_connection import query, execute
+from db_connection import query, execute, fetch_by_ids, DB_PATIENTS, DB_DOCTORS
 
 
 def _body(event):
@@ -60,38 +60,48 @@ def lambda_handler(event, context):
     if method == "GET" and resource.endswith("/diseases/active"):
         rows = query(
             "SELECT dis.disease_id, dis.patient_id, "
-            "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
             "dis.disease_name, dis.severity, dis.status, dis.diagnosis_date, "
             "dis.follow_up_date "
             "FROM diseases dis "
-            "LEFT JOIN hospital_patients.patients p ON dis.patient_id = p.patient_id "
             "WHERE dis.status IN ('Active','Under Treatment') "
             "ORDER BY dis.follow_up_date ASC"
         )
+        _names = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                              "CONCAT(first_name,' ',last_name) AS patient_name",
+                              [r["patient_id"] for r in rows])
+        for r in rows:
+            r["patient_name"] = (_names.get(r["patient_id"]) or {}).get("patient_name")
         return _json(200, {"count": len(rows), "active_diseases": rows})
 
     # ---- DISEASES FOR PATIENT ----
     if method == "GET" and resource.endswith("/diseases/patient/{patient_id}"):
         pid = _pp(event, "patient_id")
         rows = query(
-            "SELECT dis.*, "
-            "CONCAT(d.first_name,' ',d.last_name) AS doctor_name, d.specialization "
-            "FROM diseases dis "
-            "LEFT JOIN hospital_doctors.doctors d ON dis.diagnosed_by = d.doctor_id "
+            "SELECT dis.* FROM diseases dis "
             "WHERE dis.patient_id = %s ORDER BY dis.diagnosis_date DESC", (pid,))
+        _docs = fetch_by_ids(DB_DOCTORS, "doctors", "doctor_id",
+                             "CONCAT(first_name,' ',last_name) AS doctor_name, specialization",
+                             [r.get("diagnosed_by") for r in rows])
+        for r in rows:
+            _d = _docs.get(r.get("diagnosed_by")) or {}
+            r["doctor_name"] = _d.get("doctor_name")
+            r["specialization"] = _d.get("specialization")
         return _json(200, {"count": len(rows), "diseases": rows})
 
     # ---- LIST ALL ----
     if method == "GET" and resource.rstrip("/").endswith("/diseases"):
         rows = query(
             "SELECT dis.disease_id, dis.patient_id, "
-            "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
             "dis.disease_name, dis.severity, dis.status, dis.diagnosis_date, "
             "dis.follow_up_date "
             "FROM diseases dis "
-            "LEFT JOIN hospital_patients.patients p ON dis.patient_id = p.patient_id "
             "ORDER BY dis.diagnosis_date DESC"
         )
+        _names = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                              "CONCAT(first_name,' ',last_name) AS patient_name",
+                              [r["patient_id"] for r in rows])
+        for r in rows:
+            r["patient_name"] = (_names.get(r["patient_id"]) or {}).get("patient_name")
         return _json(200, {"count": len(rows), "diseases": rows})
 
     # ---- GET ONE ----
@@ -108,14 +118,14 @@ def lambda_handler(event, context):
         if not d.get("patient_id") or not d.get("disease_name") or not d.get("diagnosis_date"):
             return _json(400, {"error": "patient_id, disease_name and diagnosis_date are required"})
         # Synchronisation: validate patient exists
-        p = query("SELECT patient_id FROM hospital_patients.patients WHERE patient_id = %s",
-                  (d["patient_id"],), fetch="one")
+        p = query("SELECT patient_id FROM patients WHERE patient_id = %s",
+                  (d["patient_id"],), database=DB_PATIENTS, fetch="one")
         if not p:
             return _json(404, {"error": "Patient not found — cannot add disease"})
         # If diagnosed_by provided, validate doctor exists
         if d.get("diagnosed_by"):
-            doc = query("SELECT doctor_id FROM hospital_doctors.doctors WHERE doctor_id = %s",
-                        (d["diagnosed_by"],), fetch="one")
+            doc = query("SELECT doctor_id FROM doctors WHERE doctor_id = %s",
+                        (d["diagnosed_by"],), database=DB_DOCTORS, fetch="one")
             if not doc:
                 return _json(404, {"error": "Doctor not found"})
         res = execute(

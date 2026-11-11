@@ -14,7 +14,7 @@ Routes:
     GET    /dues                          -> all pending dues (synchronised)
 """
 import json
-from db_connection import query, execute
+from db_connection import query, execute, fetch_by_ids, DB_PATIENTS
 
 import sys
 import os
@@ -72,27 +72,33 @@ def lambda_handler(event, context):
     if method == "GET" and resource.endswith("/dues"):
         rows = query(
             "SELECT b.bill_id, b.patient_id, "
-            "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
             "b.description, b.net_amount, "
             "b.net_amount - COALESCE((SELECT SUM(amount_paid) FROM payments pm WHERE pm.bill_id=b.bill_id),0) AS due_amount, "
             "b.status, b.bill_date "
             "FROM bills b "
-            "LEFT JOIN hospital_patients.patients p ON b.patient_id = p.patient_id "
             "WHERE b.status IN ('Pending','Partial') "
             "ORDER BY b.bill_date DESC"
         )
+        _names = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                              "CONCAT(first_name,' ',last_name) AS patient_name",
+                              [r["patient_id"] for r in rows])
+        for r in rows:
+            r["patient_name"] = (_names.get(r["patient_id"]) or {}).get("patient_name")
         return _json(200, {"count": len(rows), "dues": rows})
 
     # ---- LIST BILLS ----
     if method == "GET" and resource.rstrip("/").endswith("/bills"):
         rows = query(
             "SELECT b.bill_id, b.patient_id, "
-            "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
             "b.description, b.category, b.amount, b.discount, b.net_amount, b.status, b.bill_date "
             "FROM bills b "
-            "LEFT JOIN hospital_patients.patients p ON b.patient_id = p.patient_id "
             "ORDER BY b.bill_date DESC"
         )
+        _names = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                              "CONCAT(first_name,' ',last_name) AS patient_name",
+                              [r["patient_id"] for r in rows])
+        for r in rows:
+            r["patient_name"] = (_names.get(r["patient_id"]) or {}).get("patient_name")
         return _json(200, {"count": len(rows), "bills": rows})
 
     # ---- BILLS FOR PATIENT ----
@@ -117,8 +123,8 @@ def lambda_handler(event, context):
         if not d.get("patient_id") or not d.get("description") or d.get("amount") is None:
             return _json(400, {"error": "patient_id, description and amount are required"})
         # Synchronisation: validate patient exists in hospital_patients
-        p = query("SELECT patient_id, email FROM hospital_patients.patients WHERE patient_id = %s",
-                  (d["patient_id"],), fetch="one")
+        p = query("SELECT patient_id, email FROM patients WHERE patient_id = %s",
+                  (d["patient_id"],), database=DB_PATIENTS, fetch="one")
         if not p:
             return _json(404, {"error": "Patient not found — cannot create bill"})
         res = execute(
@@ -159,11 +165,15 @@ def lambda_handler(event, context):
     if method == "GET" and resource.rstrip("/").endswith("/payments"):
         rows = query(
             "SELECT pm.payment_id, pm.bill_id, pm.patient_id, "
-            "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
             "pm.amount_paid, pm.payment_method, pm.transaction_id, pm.payment_date "
-            "FROM payments pm LEFT JOIN hospital_patients.patients p ON pm.patient_id = p.patient_id "
+            "FROM payments pm "
             "ORDER BY pm.payment_date DESC"
         )
+        _names = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                              "CONCAT(first_name,' ',last_name) AS patient_name",
+                              [r["patient_id"] for r in rows])
+        for r in rows:
+            r["patient_name"] = (_names.get(r["patient_id"]) or {}).get("patient_name")
         return _json(200, {"count": len(rows), "payments": rows})
 
     # ---- PAYMENTS FOR PATIENT ----
@@ -193,8 +203,8 @@ def lambda_handler(event, context):
         pay_id = res["lastrowid"]
         # Trigger trg_payment_after_insert auto-updates bill status
         if send_payment_receipt_email:
-            p = query("SELECT email FROM hospital_patients.patients WHERE patient_id = %s",
-                      (d["patient_id"],), fetch="one")
+            p = query("SELECT email FROM patients WHERE patient_id = %s",
+                      (d["patient_id"],), database=DB_PATIENTS, fetch="one")
             if p and p.get("email"):
                 try:
                     send_payment_receipt_email(p["email"], pay_id, d["bill_id"], float(d["amount_paid"]))

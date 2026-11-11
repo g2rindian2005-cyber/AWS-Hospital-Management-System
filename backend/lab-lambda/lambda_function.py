@@ -16,7 +16,7 @@ Routes:
     GET    /lab/pending                  -> orders not yet completed
 """
 import json
-from db_connection import query, execute
+from db_connection import query, execute, fetch_by_ids, DB_PATIENTS, DB_DOCTORS
 
 
 def _body(event):
@@ -43,15 +43,28 @@ def _json(status, payload):
 
 _ORDER_SELECT = (
     "SELECT o.*, "
-    "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
     "t.test_name, t.category AS test_category, t.price AS test_price, "
-    "t.unit AS test_unit, t.normal_range, "
-    "CONCAT(d.first_name,' ',d.last_name) AS doctor_name "
+    "t.unit AS test_unit, t.normal_range "
     "FROM lab_orders o "
-    "LEFT JOIN hospital_patients.patients p ON o.patient_id = p.patient_id "
     "LEFT JOIN lab_tests t ON o.test_id = t.test_id "
-    "LEFT JOIN hospital_doctors.doctors d ON o.ordered_by = d.doctor_id "
 )
+
+
+def _enrich_orders(rows):
+    """Attach patient_name / doctor_name from their own instances
+    (cross-database JOINs no longer exist in the 6-RDS topology)."""
+    if not rows:
+        return rows
+    _pnames = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                           "CONCAT(first_name,' ',last_name) AS patient_name",
+                           [r["patient_id"] for r in rows])
+    _dnames = fetch_by_ids(DB_DOCTORS, "doctors", "doctor_id",
+                           "CONCAT(first_name,' ',last_name) AS doctor_name",
+                           [r.get("ordered_by") for r in rows])
+    for r in rows:
+        r["patient_name"] = (_pnames.get(r["patient_id"]) or {}).get("patient_name")
+        r["doctor_name"] = (_dnames.get(r.get("ordered_by")) or {}).get("doctor_name")
+    return rows
 
 
 def lambda_handler(event, context):
@@ -133,20 +146,20 @@ def lambda_handler(event, context):
     # ================= LAB ORDERS =================
     # ---- PENDING ORDERS ----
     if method == "GET" and resource.endswith("/lab/pending"):
-        rows = query(_ORDER_SELECT +
+        rows = _enrich_orders(query(_ORDER_SELECT +
                      "WHERE o.status IN ('Ordered','Sample Collected','Processing') "
-                     "ORDER BY o.order_date ASC")
+                     "ORDER BY o.order_date ASC"))
         return _json(200, {"count": len(rows), "orders": rows})
 
     # ---- ORDERS FOR PATIENT ----
     if method == "GET" and resource.endswith("/lab/orders/patient/{patient_id}"):
         pid = _pp(event, "patient_id")
-        rows = query(_ORDER_SELECT + "WHERE o.patient_id = %s ORDER BY o.order_date DESC", (pid,))
+        rows = _enrich_orders(query(_ORDER_SELECT + "WHERE o.patient_id = %s ORDER BY o.order_date DESC", (pid,)))
         return _json(200, {"count": len(rows), "orders": rows})
 
     # ---- LIST ORDERS ----
     if method == "GET" and resource.rstrip("/").endswith("/lab/orders"):
-        rows = query(_ORDER_SELECT + "ORDER BY o.order_date DESC")
+        rows = _enrich_orders(query(_ORDER_SELECT + "ORDER BY o.order_date DESC"))
         return _json(200, {"count": len(rows), "orders": rows})
 
     # ---- GET ONE ORDER ----
@@ -155,7 +168,7 @@ def lambda_handler(event, context):
         order = query(_ORDER_SELECT + "WHERE o.order_id = %s", (oid,), fetch="one")
         if not order:
             return _json(404, {"error": "Lab order not found"})
-        return _json(200, {"order": order})
+        return _json(200, {"order": _enrich_orders([order])[0]})
 
     # ---- CREATE ORDER ----
     if method == "POST" and resource.endswith("/lab/orders"):
@@ -163,8 +176,8 @@ def lambda_handler(event, context):
         if not d.get("patient_id") or not d.get("test_id"):
             return _json(400, {"error": "patient_id and test_id are required"})
         # Synchronisation: validate patient + test exist
-        p = query("SELECT patient_id FROM hospital_patients.patients WHERE patient_id = %s",
-                  (d["patient_id"],), fetch="one")
+        p = query("SELECT patient_id FROM patients WHERE patient_id = %s",
+                  (d["patient_id"],), database=DB_PATIENTS, fetch="one")
         if not p:
             return _json(404, {"error": "Patient not found — cannot order a lab test"})
         t = query("SELECT test_id FROM lab_tests WHERE test_id = %s",
@@ -172,8 +185,8 @@ def lambda_handler(event, context):
         if not t:
             return _json(404, {"error": "Lab test not found"})
         if d.get("ordered_by"):
-            doc = query("SELECT doctor_id FROM hospital_doctors.doctors WHERE doctor_id = %s",
-                        (d["ordered_by"],), fetch="one")
+            doc = query("SELECT doctor_id FROM doctors WHERE doctor_id = %s",
+                        (d["ordered_by"],), database=DB_DOCTORS, fetch="one")
             if not doc:
                 return _json(404, {"error": "Doctor not found"})
         res = execute(

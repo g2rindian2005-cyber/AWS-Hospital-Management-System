@@ -36,26 +36,50 @@ locals {
     Environment = var.environment
     ManagedBy   = "terraform"
   }
+  # One RDS instance per database (6-instance split)
+  databases = {
+    patients = "hospital_patients"
+    billing  = "hospital_billing"
+    diseases = "hospital_diseases"
+    doctors  = "hospital_doctors"
+    lab      = "hospital_lab"
+    pharmacy = "hospital_pharmacy"
+  }
+  # Lambda service name -> key of the RDS instance that owns its database
+  service_db = {
+    patient  = "patients"
+    billing  = "billing"
+    disease  = "diseases"
+    doctor   = "doctors"
+    auth     = "patients" # auth reads no database; any host works
+    lab      = "lab"
+    pharmacy = "pharmacy"
+  }
   common_env = {
-    DB_HOST         = aws_db_instance.hospital_mysql.address
-    DB_PORT         = "3306"
-    DB_USER         = var.db_username
-    DB_PASSWORD     = var.db_password
-    DB_PATIENTS     = "hospital_patients"
-    DB_BILLING      = "hospital_billing"
-    DB_DISEASES     = "hospital_diseases"
-    DB_DOCTORS      = "hospital_doctors"
-    DB_LAB          = "hospital_lab"
-    DB_PHARMACY     = "hospital_pharmacy"
-    SMTP_HOST       = "email-smtp.${var.aws_region}.amazonaws.com"
-    SMTP_PORT       = "587"
-    AUTH_USERNAME   = var.auth_admin_username
-    AUTH_EMAIL      = var.ses_from_email
-    AUTH_PASSWORD   = var.auth_admin_password
-    JWT_SECRET      = local.jwt_secret
-    SMTP_USERNAME   = var.ses_smtp_username
-    SMTP_PASSWORD   = var.ses_smtp_password
-    SMTP_FROM_EMAIL = var.ses_from_email
+    DB_HOST_PATIENTS = aws_db_instance.hospital["patients"].address
+    DB_HOST_BILLING  = aws_db_instance.hospital["billing"].address
+    DB_HOST_DISEASES = aws_db_instance.hospital["diseases"].address
+    DB_HOST_DOCTORS  = aws_db_instance.hospital["doctors"].address
+    DB_HOST_LAB      = aws_db_instance.hospital["lab"].address
+    DB_HOST_PHARMACY = aws_db_instance.hospital["pharmacy"].address
+    DB_PORT          = "3306"
+    DB_USER          = var.db_username
+    DB_PASSWORD      = var.db_password
+    DB_PATIENTS      = "hospital_patients"
+    DB_BILLING       = "hospital_billing"
+    DB_DISEASES      = "hospital_diseases"
+    DB_DOCTORS       = "hospital_doctors"
+    DB_LAB           = "hospital_lab"
+    DB_PHARMACY      = "hospital_pharmacy"
+    SMTP_HOST        = "email-smtp.${var.aws_region}.amazonaws.com"
+    SMTP_PORT        = "587"
+    AUTH_USERNAME    = var.auth_admin_username
+    AUTH_EMAIL       = var.ses_from_email
+    AUTH_PASSWORD    = var.auth_admin_password
+    JWT_SECRET       = local.jwt_secret
+    SMTP_USERNAME    = var.ses_smtp_username
+    SMTP_PASSWORD    = var.ses_smtp_password
+    SMTP_FROM_EMAIL  = var.ses_from_email
   }
 }
 
@@ -207,7 +231,7 @@ resource "aws_security_group" "ec2" {
 }
 
 # ============================================================
-# RDS MySQL (4 databases on one instance)
+# RDS MySQL (6 instances — one per database)
 # ============================================================
 resource "aws_db_subnet_group" "hospital" {
   name       = "${var.project_name}-db-subnet-group"
@@ -215,14 +239,15 @@ resource "aws_db_subnet_group" "hospital" {
   tags       = local.tags
 }
 
-resource "aws_db_instance" "hospital_mysql" {
-  identifier              = "${var.project_name}-mysql"
+resource "aws_db_instance" "hospital" {
+  for_each                = local.databases
+  identifier              = "${var.project_name}-${each.key}"
   engine                  = "mysql"
   engine_version          = "8.0"
   instance_class          = var.db_instance_class
   allocated_storage       = var.db_allocated_storage
   storage_type            = "gp2"
-  db_name                 = var.db_name
+  db_name                 = each.value
   username                = var.db_username
   password                = var.db_password
   db_subnet_group_name    = aws_db_subnet_group.hospital.name
@@ -231,7 +256,7 @@ resource "aws_db_instance" "hospital_mysql" {
   skip_final_snapshot     = true
   backup_retention_period = 7
   storage_encrypted       = true
-  tags                    = local.tags
+  tags                    = merge(local.tags, { Database = each.value })
 }
 
 # ============================================================
@@ -356,7 +381,9 @@ resource "aws_lambda_function" "service" {
   }
 
   environment {
-    variables = local.common_env
+    variables = merge(local.common_env, {
+      DB_HOST = aws_db_instance.hospital[local.service_db[local.lambda_services[count.index].name]].address
+    })
   }
   tags = local.tags
 }

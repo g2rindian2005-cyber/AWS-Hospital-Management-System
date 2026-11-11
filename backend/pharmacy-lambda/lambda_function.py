@@ -17,7 +17,7 @@ Routes:
 """
 import json
 from datetime import datetime
-from db_connection import query, execute
+from db_connection import query, execute, fetch_by_ids, DB_PATIENTS, DB_DOCTORS
 
 
 def _body(event):
@@ -44,16 +44,29 @@ def _json(status, payload):
 
 _RX_SELECT = (
     "SELECT pr.*, "
-    "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
-    "CONCAT(d.first_name,' ',d.last_name) AS doctor_name, "
     "m.medicine_name, m.unit AS medicine_unit, m.unit_price, "
     "(m.unit_price * pr.quantity) AS total_amount, "
     "m.stock_quantity "
     "FROM prescriptions pr "
-    "LEFT JOIN hospital_patients.patients p ON pr.patient_id = p.patient_id "
-    "LEFT JOIN hospital_doctors.doctors d ON pr.doctor_id = d.doctor_id "
     "LEFT JOIN medicines m ON pr.medicine_id = m.medicine_id "
 )
+
+
+def _enrich_rx(rows):
+    """Attach patient_name / doctor_name from their own instances
+    (cross-database JOINs no longer exist in the 6-RDS topology)."""
+    if not rows:
+        return rows
+    _pnames = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                           "CONCAT(first_name,' ',last_name) AS patient_name",
+                           [r["patient_id"] for r in rows])
+    _dnames = fetch_by_ids(DB_DOCTORS, "doctors", "doctor_id",
+                           "CONCAT(first_name,' ',last_name) AS doctor_name",
+                           [r.get("doctor_id") for r in rows])
+    for r in rows:
+        r["patient_name"] = (_pnames.get(r["patient_id"]) or {}).get("patient_name")
+        r["doctor_name"] = (_dnames.get(r.get("doctor_id")) or {}).get("doctor_name")
+    return rows
 
 
 def lambda_handler(event, context):
@@ -144,12 +157,12 @@ def lambda_handler(event, context):
     # ---- PRESCRIPTIONS FOR PATIENT ----
     if method == "GET" and resource.endswith("/pharmacy/prescriptions/patient/{patient_id}"):
         pid = _pp(event, "patient_id")
-        rows = query(_RX_SELECT + "WHERE pr.patient_id = %s ORDER BY pr.prescribed_date DESC", (pid,))
+        rows = _enrich_rx(query(_RX_SELECT + "WHERE pr.patient_id = %s ORDER BY pr.prescribed_date DESC", (pid,)))
         return _json(200, {"count": len(rows), "prescriptions": rows})
 
     # ---- LIST PRESCRIPTIONS ----
     if method == "GET" and resource.rstrip("/").endswith("/pharmacy/prescriptions"):
-        rows = query(_RX_SELECT + "ORDER BY pr.prescribed_date DESC")
+        rows = _enrich_rx(query(_RX_SELECT + "ORDER BY pr.prescribed_date DESC"))
         return _json(200, {"count": len(rows), "prescriptions": rows})
 
     # ---- GET ONE PRESCRIPTION ----
@@ -158,7 +171,7 @@ def lambda_handler(event, context):
         rx = query(_RX_SELECT + "WHERE pr.prescription_id = %s", (rid,), fetch="one")
         if not rx:
             return _json(404, {"error": "Prescription not found"})
-        return _json(200, {"prescription": rx})
+        return _json(200, {"prescription": _enrich_rx([rx])[0]})
 
     # ---- CREATE PRESCRIPTION (stock-checked) ----
     if method == "POST" and resource.endswith("/pharmacy/prescriptions"):
@@ -168,8 +181,8 @@ def lambda_handler(event, context):
         qty = int(d.get("quantity") or 1)
         if qty < 1:
             return _json(400, {"error": "quantity must be at least 1"})
-        p = query("SELECT patient_id FROM hospital_patients.patients WHERE patient_id = %s",
-                  (d["patient_id"],), fetch="one")
+        p = query("SELECT patient_id FROM patients WHERE patient_id = %s",
+                  (d["patient_id"],), database=DB_PATIENTS, fetch="one")
         if not p:
             return _json(404, {"error": "Patient not found — cannot prescribe"})
         med = query("SELECT medicine_id, stock_quantity FROM medicines WHERE medicine_id = %s",
@@ -179,8 +192,8 @@ def lambda_handler(event, context):
         if int(med["stock_quantity"]) < qty:
             return _json(400, {"error": f"Insufficient stock — only {med['stock_quantity']} left"})
         if d.get("doctor_id"):
-            doc = query("SELECT doctor_id FROM hospital_doctors.doctors WHERE doctor_id = %s",
-                        (d["doctor_id"],), fetch="one")
+            doc = query("SELECT doctor_id FROM doctors WHERE doctor_id = %s",
+                        (d["doctor_id"],), database=DB_DOCTORS, fetch="one")
             if not doc:
                 return _json(404, {"error": "Doctor not found"})
         res = execute(

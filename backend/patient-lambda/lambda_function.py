@@ -16,7 +16,7 @@ database stays in sync through the same identifier.
 import json
 import datetime
 from db_connection import query, execute
-from db_connection import DB_PATIENTS
+from db_connection import DB_PATIENTS, DB_BILLING, DB_DISEASES, DB_DOCTORS
 
 import sys
 import os
@@ -89,27 +89,28 @@ def lambda_handler(event, context):
             return _json(404, {"error": "Patient not found"})
         # Synchronised summary from the other 3 databases
         bills = query(
-            "SELECT bill_id, net_amount, status, bill_date FROM hospital_billing.bills "
+            "SELECT bill_id, net_amount, status, bill_date FROM bills "
             "WHERE patient_id = %s ORDER BY bill_date DESC LIMIT 10", (pid,),
+            database=DB_BILLING,
         )
         dues = query(
             "SELECT COALESCE(SUM(b.net_amount),0) - COALESCE((SELECT SUM(p.amount_paid) "
-            "FROM hospital_billing.payments p WHERE p.patient_id = %s),0) AS total_due "
-            "FROM hospital_billing.bills b WHERE b.patient_id = %s",
-            (pid, pid), fetch="one",
+            "FROM payments p WHERE p.patient_id = %s),0) AS total_due "
+            "FROM bills b WHERE b.patient_id = %s",
+            (pid, pid), database=DB_BILLING, fetch="one",
         )
         diseases = query(
             "SELECT disease_id, disease_name, severity, status, diagnosis_date "
-            "FROM hospital_diseases.diseases WHERE patient_id = %s ORDER BY diagnosis_date DESC",
-            (pid,),
+            "FROM diseases WHERE patient_id = %s ORDER BY diagnosis_date DESC",
+            (pid,), database=DB_DISEASES,
         )
         assignments = query(
             "SELECT a.assignment_id, a.doctor_id, CONCAT(d.first_name,' ',d.last_name) AS doctor_name, "
             "d.specialization, a.status, a.appointment_date "
-            "FROM hospital_doctors.doctor_assignments a "
-            "LEFT JOIN hospital_doctors.doctors d ON a.doctor_id = d.doctor_id "
+            "FROM doctor_assignments a "
+            "LEFT JOIN doctors d ON a.doctor_id = d.doctor_id "
             "WHERE a.patient_id = %s ORDER BY a.appointment_date DESC",
-            (pid,),
+            (pid,), database=DB_DOCTORS,
         )
         return _json(200, {
             "patient": patient,

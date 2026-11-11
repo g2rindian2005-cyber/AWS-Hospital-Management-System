@@ -17,7 +17,7 @@ Routes:
     DELETE /assignments/{id}                 -> delete an assignment
 """
 import json
-from db_connection import query, execute
+from db_connection import query, execute, fetch_by_ids, DB_PATIENTS, DB_DISEASES
 
 import sys
 import os
@@ -90,12 +90,18 @@ def lambda_handler(event, context):
             return _json(404, {"error": "Doctor not found"})
         assigned = query(
             "SELECT a.assignment_id, a.patient_id, "
-            "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
-            "a.disease_id, dis.disease_name, a.status, a.appointment_date "
+            "a.disease_id, a.status, a.appointment_date "
             "FROM doctor_assignments a "
-            "LEFT JOIN hospital_patients.patients p ON a.patient_id = p.patient_id "
-            "LEFT JOIN hospital_diseases.diseases dis ON a.disease_id = dis.disease_id "
             "WHERE a.doctor_id = %s ORDER BY a.appointment_date DESC", (did,))
+        _pnames = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                               "CONCAT(first_name,' ',last_name) AS patient_name",
+                               [r["patient_id"] for r in assigned])
+        _dnames = fetch_by_ids(DB_DISEASES, "diseases", "disease_id",
+                               "disease_name",
+                               [r.get("disease_id") for r in assigned])
+        for r in assigned:
+            r["patient_name"] = (_pnames.get(r["patient_id"]) or {}).get("patient_name")
+            r["disease_name"] = (_dnames.get(r.get("disease_id")) or {}).get("disease_name")
         return _json(200, {"doctor": doc, "assigned_patients": assigned})
 
     if method == "POST" and resource.endswith("/doctors"):
@@ -136,28 +142,40 @@ def lambda_handler(event, context):
     if method == "GET" and resource.rstrip("/").endswith("/assignments"):
         rows = query(
             "SELECT a.assignment_id, a.patient_id, "
-            "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
             "a.doctor_id, CONCAT(d.first_name,' ',d.last_name) AS doctor_name, "
-            "d.specialization, a.disease_id, dis.disease_name, "
+            "d.specialization, a.disease_id, "
             "a.appointment_date, a.status, a.room_number, a.notes "
             "FROM doctor_assignments a "
-            "LEFT JOIN hospital_patients.patients p ON a.patient_id = p.patient_id "
             "LEFT JOIN doctors d ON a.doctor_id = d.doctor_id "
-            "LEFT JOIN hospital_diseases.diseases dis ON a.disease_id = dis.disease_id "
             "ORDER BY a.appointment_date DESC"
         )
+        _pnames = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                               "CONCAT(first_name,' ',last_name) AS patient_name",
+                               [r["patient_id"] for r in rows])
+        _dnames = fetch_by_ids(DB_DISEASES, "diseases", "disease_id",
+                               "disease_name",
+                               [r.get("disease_id") for r in rows])
+        for r in rows:
+            r["patient_name"] = (_pnames.get(r["patient_id"]) or {}).get("patient_name")
+            r["disease_name"] = (_dnames.get(r.get("disease_id")) or {}).get("disease_name")
         return _json(200, {"count": len(rows), "assignments": rows})
 
     if method == "GET" and resource.endswith("/assignments/doctor/{doctor_id}"):
         did = _pp(event, "doctor_id")
         rows = query(
             "SELECT a.assignment_id, a.patient_id, "
-            "CONCAT(p.first_name,' ',p.last_name) AS patient_name, "
-            "a.disease_id, dis.disease_name, a.appointment_date, a.status "
+            "a.disease_id, a.appointment_date, a.status "
             "FROM doctor_assignments a "
-            "LEFT JOIN hospital_patients.patients p ON a.patient_id = p.patient_id "
-            "LEFT JOIN hospital_diseases.diseases dis ON a.disease_id = dis.disease_id "
             "WHERE a.doctor_id = %s ORDER BY a.appointment_date DESC", (did,))
+        _pnames = fetch_by_ids(DB_PATIENTS, "patients", "patient_id",
+                               "CONCAT(first_name,' ',last_name) AS patient_name",
+                               [r["patient_id"] for r in rows])
+        _dnames = fetch_by_ids(DB_DISEASES, "diseases", "disease_id",
+                               "disease_name",
+                               [r.get("disease_id") for r in rows])
+        for r in rows:
+            r["patient_name"] = (_pnames.get(r["patient_id"]) or {}).get("patient_name")
+            r["disease_name"] = (_dnames.get(r.get("disease_id")) or {}).get("disease_name")
         return _json(200, {"count": len(rows), "assignments": rows})
 
     if method == "GET" and resource.endswith("/assignments/patient/{patient_id}"):
@@ -183,8 +201,8 @@ def lambda_handler(event, context):
         if not d.get("patient_id") or not d.get("doctor_id"):
             return _json(400, {"error": "patient_id and doctor_id are required"})
         # Synchronisation: validate patient + doctor both exist
-        p = query("SELECT patient_id, email FROM hospital_patients.patients WHERE patient_id = %s",
-                  (d["patient_id"],), fetch="one")
+        p = query("SELECT patient_id, email FROM patients WHERE patient_id = %s",
+                  (d["patient_id"],), database=DB_PATIENTS, fetch="one")
         if not p:
             return _json(404, {"error": "Patient not found"})
         doc = query("SELECT doctor_id FROM doctors WHERE doctor_id = %s",
