@@ -1,7 +1,7 @@
 # 🏥 AWS Hospital Management System
 
-A cloud-native hospital management application with **4 synchronised
-MySQL databases**, **4 serverless Lambda microservices**, **API Gateway**,
+A cloud-native hospital management application with **5 synchronised
+MySQL databases**, **6 serverless Lambda microservices**, **API Gateway**,
 **S3** static hosting, **EC2** (Nginx), **SES SMTP** email, and a
 **fully animated 3D frontend** — all deployed with **Terraform**.
 

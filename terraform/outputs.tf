@@ -23,7 +23,7 @@ output "ec2_public_ip" {
 }
 
 output "lambda_function_names" {
-  description = "Names of the 4 deployed Lambda functions"
+  description = "Names of the deployed Lambda functions"
   value       = aws_lambda_function.service[*].function_name
 }
 

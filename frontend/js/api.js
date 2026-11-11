@@ -109,6 +109,23 @@ const DoctorsAPI = {
   removeAssign:   (id)      => request(`/assignments/${id}`,   { method: "DELETE" }),
 };
 
+/* ---------------- LABORATORY ---------------- */
+const LabAPI = {
+  listTests:  ()        => request("/lab/tests"),
+  getTest:    (id)      => request(`/lab/tests/${id}`),
+  createTest: (body)    => request("/lab/tests",        { method: "POST",   body: JSON.stringify(body) }),
+  updateTest: (id, b)   => request(`/lab/tests/${id}`,  { method: "PUT",    body: JSON.stringify(b) }),
+  removeTest: (id)      => request(`/lab/tests/${id}`,  { method: "DELETE" }),
+
+  listOrders: ()        => request("/lab/orders"),
+  getOrder:   (id)      => request(`/lab/orders/${id}`),
+  createOrder:(body)    => request("/lab/orders",         { method: "POST",   body: JSON.stringify(body) }),
+  updateOrder:(id, b)   => request(`/lab/orders/${id}`,   { method: "PUT",    body: JSON.stringify(b) }),
+  removeOrder:(id)      => request(`/lab/orders/${id}`,   { method: "DELETE" }),
+  ordersForPatient: (pid) => request(`/lab/orders/patient/${pid}`),
+  pending:    ()        => request("/lab/pending"),
+};
+
 /* ---------------- AUTH ---------------- */
 const AuthAPI = {
   // POST /auth/login — returns whatever the auth Lambda returns (e.g. { token, user }).
@@ -147,6 +164,9 @@ function mockFallback(path) {
     "/diseases/active":       { count: 4, active_diseases: MOCK_DATA.diseases.filter(d => d.status !== "Recovered") },
     "/doctors":               { count: 5, doctors: MOCK_DATA.doctors },
     "/assignments":          { count: 5, assignments: MOCK_DATA.assignments },
+    "/lab/tests":             { count: 12, tests: MOCK_DATA.labTests },
+    "/lab/orders":            { count: 6, orders: MOCK_DATA.labOrders },
+    "/lab/pending":           { count: 3, orders: MOCK_DATA.labOrders.filter(o => o.status !== "Completed") },
   };
   return Promise.resolve(m[path] || { message: "ok" });
 }
@@ -196,5 +216,15 @@ const MOCK_DATA = {
     { assignment_id:3, patient_id:3, patient_name:"Amit Verma",   doctor_id:3, doctor_name:"Dr. Vivek Joshi",specialization:"Orthopedic", disease_name:"Fracture - Tibia",appointment_date:"2026-12-01 09:00", status:"Active",    room_number:"O-305" },
     { assignment_id:4, patient_id:4, patient_name:"Sneha Reddy",  doctor_id:4, doctor_name:"Dr. Sunita Kapoor",specialization:"Pediatrician",disease_name:"Asthma",     appointment_date:"2026-11-20 14:00", status:"Scheduled", room_number:"P-102" },
     { assignment_id:5, patient_id:5, patient_name:"Karan Singh",  doctor_id:1, doctor_name:"Dr. Anil Gupta",  specialization:"Cardiologist", disease_name:"Type 2 Diabetes",appointment_date:"2026-11-30 15:00", status:"Active",   room_number:"G-201" },
+  ],
+  labTests: [
+    { test_id:1, test_name:"Complete Blood Count (CBC)", category:"Hematology", sample_type:"Blood", unit:"g/dL", normal_range:"Hb 12.0 - 15.5", price:300, turnaround_hours:6, is_active:1 },
+    { test_id:3, test_name:"HbA1c (Glycated Hb)", category:"Biochemistry", sample_type:"Blood", unit:"%", normal_range:"Below 5.7", price:450, turnaround_hours:24, is_active:1 },
+    { test_id:4, test_name:"Lipid Profile", category:"Biochemistry", sample_type:"Blood", unit:"mg/dL", normal_range:"Total Chol. below 200", price:800, turnaround_hours:24, is_active:1 },
+  ],
+  labOrders: [
+    { order_id:1, patient_id:1, patient_name:"Rahul Sharma", test_id:4, test_name:"Lipid Profile", ordered_by:1, doctor_name:"Dr. Anil Gupta", order_date:"2026-10-01", priority:"Routine", status:"Completed", result_value:"182", test_unit:"mg/dL", report_date:"2026-10-02" },
+    { order_id:4, patient_id:4, patient_name:"Sneha Reddy", test_id:10, test_name:"Dengue NS1 Antigen", ordered_by:4, doctor_name:"Dr. Sunita Kapoor", order_date:"2026-08-05", priority:"Urgent", status:"Sample Collected", result_value:null, test_unit:"", report_date:null },
+    { order_id:5, patient_id:5, patient_name:"Karan Singh", test_id:3, test_name:"HbA1c (Glycated Hb)", ordered_by:1, doctor_name:"Dr. Anil Gupta", order_date:"2026-07-10", priority:"Routine", status:"Processing", result_value:null, test_unit:"%", report_date:null },
   ],
 };

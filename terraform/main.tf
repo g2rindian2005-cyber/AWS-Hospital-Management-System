@@ -45,6 +45,7 @@ locals {
     DB_BILLING      = "hospital_billing"
     DB_DISEASES     = "hospital_diseases"
     DB_DOCTORS      = "hospital_doctors"
+    DB_LAB          = "hospital_lab"
     SMTP_HOST       = "email-smtp.${var.aws_region}.amazonaws.com"
     SMTP_PORT       = "587"
     AUTH_USERNAME   = var.auth_admin_username
@@ -278,6 +279,7 @@ locals {
     { name = "disease", source = "../backend/disease-lambda" },
     { name = "doctor", source = "../backend/doctor-lambda" },
     { name = "auth", source = "../backend/auth-lambda" },
+    { name = "lab", source = "../backend/lab-lambda" },
   ]
 }
 
@@ -373,6 +375,7 @@ locals {
     doctors     = 3 # -> doctor-lambda
     assignments = 3 # -> doctor-lambda
     auth        = 4 # -> auth-lambda
+    lab         = 5 # -> lab-lambda
   }
 }
 

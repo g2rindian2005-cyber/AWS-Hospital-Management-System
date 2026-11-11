@@ -108,7 +108,7 @@ def _send_otp_email(to_addr: str, otp: str) -> bool:
     if not (host and user and password and sender and to_addr):
         return False
     msg = MIMEText(
-        f"Your MediCore Hospital login code is {otp}\n\n"
+        f"Your HealtheCare login code is {otp}\n\n"
         f"It expires in 5 minutes. If you did not try to sign in, ignore this email."
     )
     msg["Subject"] = f"Your login code: {otp}"

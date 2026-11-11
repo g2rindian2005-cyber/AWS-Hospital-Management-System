@@ -1,6 +1,6 @@
-"""Local / container runner for the MediCore Hospital backend.
+"""Local / container runner for the HealtheCare backend.
 
-Serves the five existing Lambda handlers over plain HTTP so the whole
+Serves the six existing Lambda handlers over plain HTTP so the whole
 backend can run in one container (see Dockerfile.backend and
 docker-compose.yml). The handlers are NOT modified: each one already
 accepts an API Gateway proxy event, so this adapter only translates
@@ -8,6 +8,7 @@ HTTP requests into those events and routes them by path:
 
     /patients, /bills, /payments, /dues   -> billing / patient services
     /diseases, /doctors, /assignments     -> disease / doctor services
+    /lab/tests, /lab/orders, /lab/pending -> lab service
     /auth/login, /auth/verify-otp         -> auth service
 
 Configuration is the same environment the Lambdas use on AWS:
@@ -29,6 +30,7 @@ SERVICES = {
     "disease": "disease-lambda",
     "doctor": "doctor-lambda",
     "auth": "auth-lambda",
+    "lab": "lab-lambda",
 }
 
 # Most specific templates first (fewest path parameters wins at match time).
@@ -54,6 +56,12 @@ ROUTES = [
     ("/assignments/patient/{patient_id}", "doctor"),
     ("/assignments", "doctor"),
     ("/assignments/{id}", "doctor"),
+    ("/lab/pending", "lab"),
+    ("/lab/orders/patient/{patient_id}", "lab"),
+    ("/lab/orders", "lab"),
+    ("/lab/orders/{id}", "lab"),
+    ("/lab/tests", "lab"),
+    ("/lab/tests/{id}", "lab"),
 ]
 
 
@@ -185,5 +193,5 @@ class Adapter(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8080"))
-    print(f"MediCore backend listening on 0.0.0.0:{port} ({len(HANDLERS)} services)")
+    print(f"HealtheCare backend listening on 0.0.0.0:{port} ({len(HANDLERS)} services)")
     ThreadingHTTPServer(("0.0.0.0", port), Adapter).serve_forever()

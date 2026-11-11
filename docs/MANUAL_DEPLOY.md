@@ -71,7 +71,9 @@ the repo's SQL in this order (order matters):
 5. `database/hospital_billing/payments.sql` — first run
    `sed -i 's/CREATE TRIGGER IF NOT EXISTS/CREATE TRIGGER/'` on it
 6. `database/hospital_billing/bills.sql`
-7. `database/sample_data.sql`
+7. `database/hospital_lab/laboratory.sql`
+8. `database/sample_data.sql`
+9. `database/hospital_lab/lab_sample_data.sql`
 
 ## 5. Verify
 

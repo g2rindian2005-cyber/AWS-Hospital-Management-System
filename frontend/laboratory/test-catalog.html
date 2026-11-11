@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Catalog — HealtheCare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=6">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Test Catalog</h1>
+          <p>Tests the laboratory offers, with prices and normal ranges</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary btn-sm" onclick="openTestModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+            Add Test
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-toolbar">
+          <div class="table-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="testSearch" placeholder="Search tests…">
+          </div>
+          <div class="table-filters">
+            <select class="form-control" id="categoryFilter" style="width:auto;padding:7px 12px;">
+              <option value="">All Categories</option>
+              <option>Hematology</option><option>Biochemistry</option><option>Microbiology</option>
+              <option>Serology</option><option>Pathology</option><option>Radiology</option><option>Hormones</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Test</th><th>Category</th><th>Sample</th><th>Normal Range</th>
+                <th>Price</th><th>Turnaround</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="testTable"><tr><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="testPagination"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Test Modal -->
+<div class="modal-overlay" id="testModal">
+  <div class="modal fade-in">
+    <div class="modal-header">
+      <h3 id="testModalTitle">Add Test</h3>
+      <button class="modal-close" onclick="document.getElementById('testModal').classList.remove('show')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="testId">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Test Name <span class="required">*</span></label>
+          <input type="text" class="form-control" id="testName" placeholder="e.g. Complete Blood Count (CBC)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-control" id="testCategory">
+            <option>Hematology</option><option>Biochemistry</option><option>Microbiology</option>
+            <option>Serology</option><option>Pathology</option><option>Radiology</option><option>Hormones</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sample Type</label>
+          <input type="text" class="form-control" id="testSample" placeholder="Blood, Urine…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Normal Range</label>
+          <input type="text" class="form-control" id="testRange" placeholder="e.g. 70 - 110">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          <input type="text" class="form-control" id="testUnit" placeholder="mg/dL">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price (₹)</label>
+          <input type="number" class="form-control" id="testPrice" min="0" step="0.01" placeholder="300">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Turnaround (hours)</label>
+          <input type="number" class="form-control" id="testTat" min="1" placeholder="24">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('testModal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-primary" id="saveTestBtn" onclick="saveTest()">Save Test</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'test-catalog', title: 'Test Catalog', subtitle: 'Diagnostics' });
+
+  let allTests = [];
+  let testPage = 1;
+  const perPage = 10;
+
+  async function init() {
+    const data = await LabAPI.listTests();
+    allTests = data?.tests || [];
+    renderTable();
+  }
+
+  function getFiltered() {
+    const q = (document.getElementById('testSearch').value||'').toLowerCase();
+    const cat = document.getElementById('categoryFilter').value;
+    return allTests.filter(t => {
+      const matchQ = !q || (t.test_name||'').toLowerCase().includes(q);
+      const matchC = !cat || t.category === cat;
+      return matchQ && matchC;
+    });
+  }
+
+  function renderTable() {
+    const f = getFiltered();
+    const page = f.slice((testPage-1)*perPage, testPage*perPage);
+    document.getElementById('testTable').innerHTML = page.length
+      ? page.map(t => `
+        <tr>
+          <td class="fw-600">${t.test_name||'—'}</td>
+          <td>${statusBadge(t.category)}</td>
+          <td>${t.sample_type||'—'}</td>
+          <td class="text-muted">${t.normal_range||'—'} ${t.unit||''}</td>
+          <td class="fw-600">${typeof formatCurrency === 'function' ? formatCurrency(t.price) : '₹' + Number(t.price||0).toLocaleString('en-IN')}</td>
+          <td class="text-muted">${t.turnaround_hours||24}h</td>
+          <td>${Number(t.is_active) === 1 ? statusBadge('Active') : statusBadge('Inactive')}</td>
+          <td>
+            <div class="d-flex gap-8">
+              <button class="btn-icon btn-icon-edit" onclick="openTestModal(${JSON.stringify(t).replace(/"/g,'&quot;')})" title="Edit">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn-icon btn-icon-danger" onclick="deleteTest(${t.test_id})" title="Delete">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('')
+      : `<tr><td colspan="8"><div class="empty-state"><h4>No tests found</h4></div></td></tr>`;
+    buildPagination(document.getElementById('testPagination'), f.length, testPage, perPage, p => { testPage=p; renderTable(); });
+  }
+
+  document.getElementById('testSearch').addEventListener('input', () => { testPage=1; renderTable(); });
+  document.getElementById('categoryFilter').addEventListener('change', () => { testPage=1; renderTable(); });
+
+  function openTestModal(t) {
+    document.getElementById('testModalTitle').textContent = t ? 'Edit Test' : 'Add Test';
+    document.getElementById('testId').value       = t?.test_id || '';
+    document.getElementById('testName').value     = t?.test_name || '';
+    document.getElementById('testCategory').value = t?.category || 'Biochemistry';
+    document.getElementById('testSample').value   = t?.sample_type || '';
+    document.getElementById('testRange').value    = t?.normal_range || '';
+    document.getElementById('testUnit').value     = t?.unit || '';
+    document.getElementById('testPrice').value    = t?.price ?? '';
+    document.getElementById('testTat').value      = t?.turnaround_hours ?? 24;
+    document.getElementById('testModal').classList.add('show');
+  }
+
+  async function saveTest() {
+    const id = document.getElementById('testId').value;
+    const name = document.getElementById('testName').value.trim();
+    if (!name) { showToast('Test name is required.', 'warning'); return; }
+    const btn = document.getElementById('saveTestBtn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    const body = {
+      test_name:        name,
+      category:         document.getElementById('testCategory').value,
+      sample_type:      document.getElementById('testSample').value.trim(),
+      normal_range:     document.getElementById('testRange').value.trim(),
+      unit:             document.getElementById('testUnit').value.trim(),
+      price:            parseFloat(document.getElementById('testPrice').value) || 0,
+      turnaround_hours: parseInt(document.getElementById('testTat').value) || 24,
+    };
+    const res = id ? await LabAPI.updateTest(id, body) : await LabAPI.createTest(body);
+    btn.textContent = 'Save Test'; btn.disabled = false;
+    if (res) {
+      showToast(id ? 'Test updated.' : 'Test added to catalog.', 'success');
+      document.getElementById('testModal').classList.remove('show');
+      await init();
+    }
+  }
+
+  async function deleteTest(id) {
+    const ok = await confirmDialog({ title:'Delete Test?', message:'This will remove the test from the catalog.', confirmText:'Delete' });
+    if (!ok) return;
+    const res = await LabAPI.removeTest(id);
+    if (res !== null) { showToast('Test deleted.', 'success'); await init(); }
+  }
+
+  init();
+</script>
+</body>
+</html>
