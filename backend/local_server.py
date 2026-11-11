@@ -1,6 +1,6 @@
 """Local / container runner for the HealtheCare backend.
 
-Serves the six existing Lambda handlers over plain HTTP so the whole
+Serves the seven existing Lambda handlers over plain HTTP so the whole
 backend can run in one container (see Dockerfile.backend and
 docker-compose.yml). The handlers are NOT modified: each one already
 accepts an API Gateway proxy event, so this adapter only translates
@@ -9,6 +9,7 @@ HTTP requests into those events and routes them by path:
     /patients, /bills, /payments, /dues   -> billing / patient services
     /diseases, /doctors, /assignments     -> disease / doctor services
     /lab/tests, /lab/orders, /lab/pending -> lab service
+    /pharmacy/medicines, /pharmacy/prescriptions -> pharmacy service
     /auth/login, /auth/verify-otp         -> auth service
 
 Configuration is the same environment the Lambdas use on AWS:
@@ -31,6 +32,7 @@ SERVICES = {
     "doctor": "doctor-lambda",
     "auth": "auth-lambda",
     "lab": "lab-lambda",
+    "pharmacy": "pharmacy-lambda",
 }
 
 # Most specific templates first (fewest path parameters wins at match time).
@@ -62,6 +64,12 @@ ROUTES = [
     ("/lab/orders/{id}", "lab"),
     ("/lab/tests", "lab"),
     ("/lab/tests/{id}", "lab"),
+    ("/pharmacy/low-stock", "pharmacy"),
+    ("/pharmacy/prescriptions/patient/{patient_id}", "pharmacy"),
+    ("/pharmacy/prescriptions", "pharmacy"),
+    ("/pharmacy/prescriptions/{id}", "pharmacy"),
+    ("/pharmacy/medicines", "pharmacy"),
+    ("/pharmacy/medicines/{id}", "pharmacy"),
 ]
 
 

@@ -8,7 +8,7 @@
       project sites under /<repo>/), so detect the module folder by name. ── */
 function _prefix() {
   const parts = window.location.pathname.split('/').filter(Boolean);
-  const MODULE_DIRS = ['patients', 'billing', 'diseases', 'doctors', 'laboratory'];
+  const MODULE_DIRS = ['patients', 'billing', 'diseases', 'doctors', 'laboratory', 'pharmacy'];
   return parts.some(p => MODULE_DIRS.includes(p)) ? '../' : '';
 }
 
@@ -200,6 +200,38 @@ function buildSidebarHTML() {
         </svg>
       </span>
       Test Catalog
+    </a>
+  </div>
+
+  <div class="nav-group">
+    <span class="nav-group-label">Pharmacy</span>
+    <a href="${p}pharmacy/prescriptions.html" class="nav-item" data-page="prescriptions">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>
+        </svg>
+      </span>
+      Prescriptions
+    </a>
+    <a href="${p}pharmacy/add-prescription.html" class="nav-item" data-page="add-prescription">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M8 12h8"/><path d="M12 8v8"/>
+        </svg>
+      </span>
+      New Prescription
+    </a>
+    <a href="${p}pharmacy/medicine-catalog.html" class="nav-item" data-page="medicine-catalog">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+      </span>
+      Medicine Catalog
     </a>
   </div>
 

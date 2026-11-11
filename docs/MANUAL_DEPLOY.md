@@ -72,8 +72,10 @@ the repo's SQL in this order (order matters):
    `sed -i 's/CREATE TRIGGER IF NOT EXISTS/CREATE TRIGGER/'` on it
 6. `database/hospital_billing/bills.sql`
 7. `database/hospital_lab/laboratory.sql`
-8. `database/sample_data.sql`
-9. `database/hospital_lab/lab_sample_data.sql`
+8. `database/hospital_pharmacy/pharmacy.sql`
+9. `database/sample_data.sql`
+10. `database/hospital_lab/lab_sample_data.sql`
+11. `database/hospital_pharmacy/pharmacy_sample_data.sql`
 
 ## 5. Verify
 

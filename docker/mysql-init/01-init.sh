@@ -13,6 +13,7 @@ CREATE DATABASE IF NOT EXISTS hospital_billing;
 CREATE DATABASE IF NOT EXISTS hospital_diseases;
 CREATE DATABASE IF NOT EXISTS hospital_doctors;
 CREATE DATABASE IF NOT EXISTS hospital_lab;
+CREATE DATABASE IF NOT EXISTS hospital_pharmacy;
 CREATE USER IF NOT EXISTS 'admin'@'%' IDENTIFIED BY 'hospital_local_pw';
 GRANT ALL PRIVILEGES ON \`hospital\_%\`.* TO 'admin'@'%';
 FLUSH PRIVILEGES;
@@ -30,6 +31,8 @@ sed 's/CREATE TRIGGER IF NOT EXISTS/CREATE TRIGGER/' /sql/hospital_billing/payme
 run /tmp/payments.sql
 run /sql/hospital_billing/bills.sql
 run /sql/hospital_lab/laboratory.sql
+run /sql/hospital_pharmacy/pharmacy.sql
 run /sql/sample_data.sql
 run /sql/hospital_lab/lab_sample_data.sql
+run /sql/hospital_pharmacy/pharmacy_sample_data.sql
 echo "mysql-init: done"

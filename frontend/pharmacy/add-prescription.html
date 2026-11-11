@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Prescription — HealtheCare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=6">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>New Prescription</h1>
+          <p>Prescribe a medicine for a patient</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="prescriptions.html" class="btn btn-outline btn-sm">← Back to Prescriptions</a>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <h3>Prescription Details</h3>
+              <p>Stock is checked automatically before saving</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <form id="rxForm" novalidate>
+
+              <div class="form-section">
+                <div class="form-section-title">Patient & Medicine</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Patient <span class="required">*</span></label>
+                    <select class="form-control" id="patientId" required>
+                      <option value="">— Select patient —</option>
+                    </select>
+                    <span class="form-error">Please select a patient.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Medicine <span class="required">*</span></label>
+                    <select class="form-control" id="medicineId" required>
+                      <option value="">— Select medicine —</option>
+                    </select>
+                    <span class="form-error">Please select a medicine.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Prescribed By (Doctor)</label>
+                    <select class="form-control" id="doctorId">
+                      <option value="">— Select doctor —</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Quantity <span class="required">*</span></label>
+                    <input type="number" class="form-control" id="quantity" min="1" value="10" required>
+                    <span class="form-error">Quantity is required.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section mb-0">
+                <div class="form-section-title">Dosage Instructions</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Dosage</label>
+                    <input type="text" class="form-control" id="dosage" placeholder="e.g. 500mg">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Frequency</label>
+                    <input type="text" class="form-control" id="frequency" placeholder="e.g. Twice a day">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Duration (days)</label>
+                    <input type="number" class="form-control" id="durationDays" min="1" placeholder="e.g. 30">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Remarks</label>
+                    <input type="text" class="form-control" id="remarks" placeholder="e.g. After food">
+                  </div>
+                </div>
+              </div>
+
+            </form>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-outline" onclick="document.getElementById('rxForm').reset()">Clear</button>
+            <button class="btn btn-primary" id="submitBtn" onclick="submitRx()">Save Prescription</button>
+          </div>
+        </div>
+
+        <!-- Sidebar Info -->
+        <div style="display:flex; flex-direction:column; gap:18px;">
+          <div class="card">
+            <div class="card-header"><div class="card-header-left"><h3>How It Flows</h3></div></div>
+            <div class="card-body">
+              <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                <div><span class="fw-600">1. Prescribed</span><p style="font-size:12px;color:var(--gray-400);">The doctor creates the prescription; stock is verified.</p></div>
+                <div><span class="fw-600">2. Pending</span><p style="font-size:12px;color:var(--gray-400);">The pharmacy prepares the medicine.</p></div>
+                <div><span class="fw-600">3. Dispensed</span><p style="font-size:12px;color:var(--gray-400);">Handed to the patient — stock reduces automatically.</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-header-left"><h3>Common Medicines</h3></div></div>
+            <div class="card-body">
+              <div style="display:flex; flex-wrap:wrap; gap:8px;" id="popularMeds">
+                <span class="text-muted" style="font-size:12px;">Loading catalog…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'add-prescription', title: 'New Prescription', subtitle: 'Pharmacy' });
+
+  let catalog = [];
+
+  async function init() {
+    const [pd, md, dd] = await Promise.all([PatientsAPI.list(), PharmacyAPI.listMedicines(), DoctorsAPI.list()]);
+    catalog = md?.medicines || [];
+
+    const pSel = document.getElementById('patientId');
+    (pd?.patients||[]).forEach(p => {
+      const o = document.createElement('option'); o.value = p.patient_id;
+      o.textContent = `PID-${String(p.patient_id).padStart(4,'0')} — ${p.first_name} ${p.last_name}`;
+      pSel.appendChild(o);
+    });
+
+    const mSel = document.getElementById('medicineId');
+    catalog.forEach(m => {
+      const o = document.createElement('option'); o.value = m.medicine_id;
+      o.textContent = `${m.medicine_name} — ₹${Number(m.unit_price||0).toLocaleString('en-IN')} (Stock: ${m.stock_quantity})`;
+      mSel.appendChild(o);
+    });
+
+    const dSel = document.getElementById('doctorId');
+    (dd?.doctors||[]).forEach(d => {
+      const o = document.createElement('option'); o.value = d.doctor_id;
+      o.textContent = `${d.first_name} ${d.last_name} — ${d.specialization}`;
+      dSel.appendChild(o);
+    });
+
+    const pop = document.getElementById('popularMeds');
+    pop.innerHTML = catalog.slice(0, 8).map(m =>
+      `<button class="btn btn-outline btn-sm" onclick="pickMed(${m.medicine_id})">${m.medicine_name}</button>`).join('')
+      || '<span class="text-muted" style="font-size:12px;">No medicines in catalog yet.</span>';
+  }
+
+  function pickMed(id) { document.getElementById('medicineId').value = id; }
+
+  async function submitRx() {
+    const required = ['patientId','medicineId','quantity'];
+    let valid = true;
+    required.forEach(id => {
+      const el = document.getElementById(id);
+      if (!String(el.value).trim()) { el.classList.add('is-invalid'); valid = false; }
+      else el.classList.remove('is-invalid');
+    });
+    if (!valid) { showToast('Please fill in all required fields.', 'warning'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+
+    const body = {
+      patient_id:    parseInt(document.getElementById('patientId').value),
+      medicine_id:   parseInt(document.getElementById('medicineId').value),
+      doctor_id:     document.getElementById('doctorId').value || null,
+      quantity:      parseInt(document.getElementById('quantity').value) || 1,
+      dosage:        document.getElementById('dosage').value.trim(),
+      frequency:     document.getElementById('frequency').value.trim(),
+      duration_days: parseInt(document.getElementById('durationDays').value) || null,
+      remarks:       document.getElementById('remarks').value.trim(),
+    };
+
+    const res = await PharmacyAPI.createPrescription(body);
+    btn.textContent = 'Save Prescription'; btn.disabled = false;
+
+    if (res) {
+      showToast('Prescription saved successfully!', 'success');
+      document.getElementById('rxForm').reset();
+      document.getElementById('quantity').value = 10;
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
