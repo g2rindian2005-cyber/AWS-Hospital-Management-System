@@ -95,7 +95,27 @@ terraform init
 terraform plan -var-file=terraform.tfvars
 terraform apply -var-file=terraform.tfvars
 ```
-Wait ~10-15 minutes (RDS takes the longest).
+Wait ~15-20 minutes (the RDS instances take the longest; the six are
+created in parallel).
+
+**What gets created:**
+- **6 RDS MySQL instances — one per database** (`hospital-patients`,
+  `hospital-billing`, `hospital-diseases`, `hospital-doctors`,
+  `hospital-lab`, `hospital-pharmacy`), all in the private subnets
+- **7 Lambda services** (auth, patient, billing, disease, doctor, lab,
+  pharmacy). Every Lambda receives all six instance addresses
+  (`DB_HOST_PATIENTS`, `DB_HOST_BILLING`, …) and reads the other
+  databases **live** — there are no cross-instance SQL JOINs
+- API Gateway (REST, per-base-path proxy routes), S3 website bucket,
+  EC2/Nginx frontend host, IAM roles, VPC
+
+> **Upgrading from the old single-RDS setup?** `terraform apply` will
+> replace the one `hospital-mysql` instance with the six new ones and
+> the databases start empty — re-run STEP 4 to initialise them.
+> If the lab/pharmacy Lambdas were ever created by hand (AWS CLI)
+> outside Terraform, delete those two functions and their `/lab` and
+> `/pharmacy` API resources first, or the apply will hit name
+> conflicts.
 
 ## STEP 4 — Initialise the 6 Databases
 Each database has its OWN RDS endpoint — get them all from Terraform:
@@ -116,16 +136,29 @@ mysql -h <doctors-endpoint>  -u admin -p < database/hospital_doctors/doctor_assi
 mysql -h <lab-endpoint>      -u admin -p < database/hospital_lab/laboratory.sql
 mysql -h <pharmacy-endpoint> -u admin -p < database/hospital_pharmacy/pharmacy.sql
 ```
-Sample data: `database/sample_data.sql` spans the patients/billing/
-diseases/doctors instances (run each part against its instance), plus
-`lab_sample_data.sql` and `pharmacy_sample_data.sql` on theirs. See
-`docs/MANUAL_DEPLOY.md` for the full ordered list.
+Then load the sample data — one file per instance (these are the
+per-database splits of `database/sample_data.sql`):
+```bash
+mysql -h <patients-endpoint> -u admin -p < database/hospital_patients/patients_sample_data.sql
+mysql -h <doctors-endpoint>  -u admin -p < database/hospital_doctors/doctors_sample_data.sql
+mysql -h <diseases-endpoint> -u admin -p < database/hospital_diseases/diseases_sample_data.sql
+mysql -h <billing-endpoint>  -u admin -p < database/hospital_billing/billing_sample_data.sql
+mysql -h <lab-endpoint>      -u admin -p < database/hospital_lab/lab_sample_data.sql
+mysql -h <pharmacy-endpoint> -u admin -p < database/hospital_pharmacy/pharmacy_sample_data.sql
+```
+Expected result: 5 patients, 5 doctors, 5 diseases, 5 bills,
+3 payments, 6 lab orders, 6 prescriptions. See `docs/MANUAL_DEPLOY.md`
+for the full ordered schema list.
 
 ## STEP 5 — Wire the Frontend to API Gateway
 ```bash
 API=$(terraform output -raw api_gateway_url)
-# Replace the placeholder URL in api.js
-sed -i "s|https://abc123.execute-api.*amazonaws.com.*|$API\"|" frontend/js/api.js
+echo "API: $API"
+# Set it as the default in frontend/js/api.js (the API_BASE_URL fallback),
+# or serve a js/config.js that sets window.HMS_CONFIG = { apiBase: "$API" }
+# before api.js loads — config.js wins when present.
+grep -n "execute-api" frontend/js/api.js   # find the current default
+sed -i "s|https://[a-z0-9]*\.execute-api\.[a-z0-9-]*\.amazonaws\.com/prod|$API|g" frontend/js/api.js
 ```
 
 ## STEP 6 — Upload Frontend to S3
@@ -147,17 +180,31 @@ ssh -i ~/.ssh/hospital-key.pem ubuntu@$EC2IP \
 echo "Open: http://$EC2IP"
 ```
 
-## STEP 8 — Test the App
-1. Open the S3 website URL or EC2 IP in your browser.
-2. Login with `admin` / `admin123`.
-3. Try the dashboard, add a patient, create a bill, assign a doctor.
-4. Check the patient's email for SES notifications.
+## STEP 8 — Test the App (every feature)
+1. Open the S3 website URL, the EC2 IP, or the GitHub Pages site.
+2. Login with `admin` / `admin123`, then enter the OTP. Until the SES
+   sender is verified (STEP 2/9), the code is shown on the login page
+   itself; afterwards it arrives by email only.
+3. Walk every module once — each one reads/writes its own RDS instance
+   and pulls names live from the others:
+   - **Dashboard** — stat cards and charts load
+   - **Patients** — add a patient; open the patient → history shows
+     bills, diseases and assignments from the other instances
+   - **Doctors** — add a doctor; create an assignment (appointment)
+   - **Diseases** — add a diagnosis for the patient
+   - **Billing** — create a bill, record a payment, check Pending Dues
+   - **Laboratory** — order a test, update its status/result
+   - **Pharmacy** — create a prescription, dispense it (stock drops)
+   - **Reports** — totals match the data you just entered
+4. Check the patient's email for SES notifications (bill / receipt /
+   appointment), once SES is verified.
 
 ## STEP 9 — Request SES Production Access
 While in sandbox, only verified emails can receive notifications.
 AWS Console → SES → Account dashboard → Request Production access.
 
 ## STEP 10 — Tear Down (stop costs)
+Destroys everything, including **all six RDS instances**:
 ```bash
 cd terraform
 terraform destroy -var-file=terraform.tfvars
