@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Lab Test — HealtheCare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=6">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Order Lab Test</h1>
+          <p>Book a laboratory test for a patient</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="lab-orders.html" class="btn btn-outline btn-sm">← Back to Lab Orders</a>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <h3>Test Order Details</h3>
+              <p>Select the patient and the test to order</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <form id="orderTestForm" novalidate>
+
+              <div class="form-section">
+                <div class="form-section-title">Patient & Test</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Patient <span class="required">*</span></label>
+                    <select class="form-control" id="patientId" required>
+                      <option value="">— Select patient —</option>
+                    </select>
+                    <span class="form-error">Please select a patient.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Lab Test <span class="required">*</span></label>
+                    <select class="form-control" id="testId" required>
+                      <option value="">— Select test —</option>
+                    </select>
+                    <span class="form-error">Please select a test.</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Ordered By (Doctor)</label>
+                    <select class="form-control" id="orderedBy">
+                      <option value="">— Select doctor —</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Priority</label>
+                    <select class="form-control" id="priority">
+                      <option>Routine</option><option>Urgent</option><option>STAT</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section mb-0">
+                <div class="form-section-title">Notes</div>
+                <div class="form-group mb-0">
+                  <label class="form-label">Remarks</label>
+                  <textarea class="form-control" id="remarks" rows="3" placeholder="Clinical notes for the lab, e.g. fasting sample, repeat test…"></textarea>
+                </div>
+              </div>
+
+            </form>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-outline" onclick="document.getElementById('orderTestForm').reset()">Clear</button>
+            <button class="btn btn-primary" id="submitBtn" onclick="submitOrder()">Place Order</button>
+          </div>
+        </div>
+
+        <!-- Sidebar Info -->
+        <div style="display:flex; flex-direction:column; gap:18px;">
+          <div class="card">
+            <div class="card-header"><div class="card-header-left"><h3>How It Flows</h3></div></div>
+            <div class="card-body">
+              <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                <div><span class="fw-600">1. Ordered</span><p style="font-size:12px;color:var(--gray-400);">The doctor books the test for the patient.</p></div>
+                <div><span class="fw-600">2. Sample Collected</span><p style="font-size:12px;color:var(--gray-400);">The lab collects the blood / urine sample.</p></div>
+                <div><span class="fw-600">3. Processing</span><p style="font-size:12px;color:var(--gray-400);">The sample is analysed in the laboratory.</p></div>
+                <div><span class="fw-600">4. Completed</span><p style="font-size:12px;color:var(--gray-400);">The result value and report are published.</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-header-left"><h3>Popular Tests</h3></div></div>
+            <div class="card-body">
+              <div style="display:flex; flex-wrap:wrap; gap:8px;" id="popularTests">
+                <span class="text-muted" style="font-size:12px;">Loading catalog…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'order-test', title: 'Order Lab Test', subtitle: 'Diagnostics' });
+
+  let catalog = [];
+
+  async function init() {
+    const [pd, td, dd] = await Promise.all([PatientsAPI.list(), LabAPI.listTests(), DoctorsAPI.list()]);
+    catalog = td?.tests || [];
+
+    const pSel = document.getElementById('patientId');
+    (pd?.patients||[]).forEach(p => {
+      const o = document.createElement('option'); o.value = p.patient_id;
+      o.textContent = `PID-${String(p.patient_id).padStart(4,'0')} — ${p.first_name} ${p.last_name}`;
+      pSel.appendChild(o);
+    });
+
+    const tSel = document.getElementById('testId');
+    catalog.forEach(t => {
+      const o = document.createElement('option'); o.value = t.test_id;
+      o.textContent = `${t.test_name} — ₹${Number(t.price||0).toLocaleString('en-IN')}`;
+      tSel.appendChild(o);
+    });
+
+    const dSel = document.getElementById('orderedBy');
+    (dd?.doctors||[]).forEach(d => {
+      const o = document.createElement('option'); o.value = d.doctor_id;
+      o.textContent = `${d.first_name} ${d.last_name} — ${d.specialization}`;
+      dSel.appendChild(o);
+    });
+
+    const pop = document.getElementById('popularTests');
+    pop.innerHTML = catalog.slice(0, 8).map(t =>
+      `<button class="btn btn-outline btn-sm" onclick="pickTest(${t.test_id})">${t.test_name}</button>`).join('')
+      || '<span class="text-muted" style="font-size:12px;">No tests in catalog yet.</span>';
+  }
+
+  function pickTest(id) { document.getElementById('testId').value = id; }
+
+  async function submitOrder() {
+    const required = ['patientId','testId'];
+    let valid = true;
+    required.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { el.classList.add('is-invalid'); valid = false; }
+      else el.classList.remove('is-invalid');
+    });
+    if (!valid) { showToast('Please fill in all required fields.', 'warning'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Ordering…'; btn.disabled = true;
+
+    const body = {
+      patient_id: parseInt(document.getElementById('patientId').value),
+      test_id:    parseInt(document.getElementById('testId').value),
+      ordered_by: document.getElementById('orderedBy').value || null,
+      priority:   document.getElementById('priority').value,
+      remarks:    document.getElementById('remarks').value.trim(),
+    };
+
+    const res = await LabAPI.createOrder(body);
+    btn.textContent = 'Place Order'; btn.disabled = false;
+
+    if (res) {
+      showToast('Lab test ordered successfully!', 'success');
+      document.getElementById('orderTestForm').reset();
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

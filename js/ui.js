@@ -1,5 +1,5 @@
 /* ============================================================
-   MediCore Hospital — Shared UI Utilities
+   HealtheCare — Shared UI Utilities
    Sidebar injection, Toast, Confirm Dialog, Helpers
    ============================================================ */
 
@@ -8,7 +8,7 @@
       project sites under /<repo>/), so detect the module folder by name. ── */
 function _prefix() {
   const parts = window.location.pathname.split('/').filter(Boolean);
-  const MODULE_DIRS = ['patients', 'billing', 'diseases', 'doctors'];
+  const MODULE_DIRS = ['patients', 'billing', 'diseases', 'doctors', 'laboratory'];
   return parts.some(p => MODULE_DIRS.includes(p)) ? '../' : '';
 }
 
@@ -23,7 +23,7 @@ function buildSidebarHTML() {
       <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
     </svg>
   </div>
-  <span class="sidebar-brand-name">Medi<span>Core</span> Hospital</span>
+  <span class="sidebar-brand-name">Healthe<span>Care</span></span>
   <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse sidebar" aria-label="Collapse sidebar">
     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
   </button>
@@ -172,6 +172,38 @@ function buildSidebarHTML() {
     </a>
   </div>
   <div class="nav-group">
+    <span class="nav-group-label">Laboratory</span>
+    <a href="${p}laboratory/lab-orders.html" class="nav-item" data-page="lab-orders">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 2v6L4.5 18a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L14 8V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>
+        </svg>
+      </span>
+      Lab Orders
+    </a>
+    <a href="${p}laboratory/order-test.html" class="nav-item" data-page="order-test">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M8 12h8"/><path d="M12 8v8"/>
+        </svg>
+      </span>
+      Order Test
+    </a>
+    <a href="${p}laboratory/test-catalog.html" class="nav-item" data-page="test-catalog">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+      </span>
+      Test Catalog
+    </a>
+  </div>
+
+  <div class="nav-group">
     <span class="nav-group-label">System</span>
     <a href="${p}reports.html" class="nav-item" data-page="reports">
       <span class="nav-icon">
@@ -205,7 +237,7 @@ function buildSidebarHTML() {
       <div class="sidebar-user-role">Hospital Admin</div>
     </div>
   </div>
-  <div style="padding:10px 16px 0; font-size:11px; letter-spacing:.02em; color:rgba(226,238,255,.45);">MediCore Hospital · by Gokul Rathod</div>
+  <div style="padding:10px 16px 0; font-size:11px; letter-spacing:.02em; color:rgba(226,238,255,.45);">HealtheCare · by Gokul Rathod</div>
   <a href="${p}login.html" class="nav-item" id="logoutBtn" style="color:var(--red-600); margin-top:4px;">
     <span class="nav-icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -478,6 +510,22 @@ function statusBadge(status) {
     'Mild':             'badge-teal',
     'Moderate':         'badge-warning',
     'Severe':           'badge-danger',
+    'Ordered':          'badge-info',
+    'Sample Collected': 'badge-warning',
+    'Processing':       'badge-purple',
+    'Completed':        'badge-success',
+    'Cancelled':        'badge-danger',
+    'Routine':          'badge-gray',
+    'Urgent':           'badge-warning',
+    'STAT':             'badge-danger',
+    'Inactive':         'badge-gray',
+    'Hematology':       'badge-info',
+    'Biochemistry':     'badge-teal',
+    'Microbiology':     'badge-purple',
+    'Serology':         'badge-warning',
+    'Pathology':        'badge-gray',
+    'Radiology':        'badge-info',
+    'Hormones':         'badge-purple',
   };
   const cls = map[status] || 'badge-gray';
   return `<span class="badge ${cls}"><span class="badge-dot"></span>${status}</span>`;

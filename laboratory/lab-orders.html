@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Orders — HealtheCare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=6">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Laboratory Orders</h1>
+          <p>Track lab test orders, samples and reports</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="order-test.html" class="btn btn-primary btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+            Order Test
+          </a>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:20px;">
+        <div class="stat-card stat-blue"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v6L4.5 18a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L14 8V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg></div><div class="stat-info"><div class="stat-value" id="totalOrders">—</div><div class="stat-label">Total Orders</div></div></div>
+        <div class="stat-card stat-amber"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="stat-info"><div class="stat-value" id="pendingOrders">—</div><div class="stat-label">Pending</div></div></div>
+        <div class="stat-card stat-green"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div><div class="stat-info"><div class="stat-value" id="completedOrders">—</div><div class="stat-label">Completed</div></div></div>
+        <div class="stat-card stat-purple"><div class="stat-icon-wrap"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></div><div class="stat-info"><div class="stat-value" id="catalogTests">—</div><div class="stat-label">Tests in Catalog</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="table-toolbar">
+          <div class="table-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="orderSearch" placeholder="Search by patient, test name…">
+          </div>
+          <div class="table-filters">
+            <select class="form-control" id="statusFilter" style="width:auto;padding:7px 12px;">
+              <option value="">All Statuses</option>
+              <option>Ordered</option><option>Sample Collected</option>
+              <option>Processing</option><option>Completed</option><option>Cancelled</option>
+            </select>
+            <select class="form-control" id="priorityFilter" style="width:auto;padding:7px 12px;">
+              <option value="">All Priorities</option>
+              <option>Routine</option><option>Urgent</option><option>STAT</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th><th>Patient</th><th>Test</th><th>Priority</th>
+                <th>Status</th><th>Result</th><th>Ordered</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orderTable"><tr><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="orderPagination"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Edit / Result Modal -->
+<div class="modal-overlay" id="editOrderModal">
+  <div class="modal fade-in">
+    <div class="modal-header">
+      <h3>Update Lab Order</h3>
+      <button class="modal-close" onclick="document.getElementById('editOrderModal').classList.remove('show')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editOrderId">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="editStatus">
+            <option>Ordered</option><option>Sample Collected</option>
+            <option>Processing</option><option>Completed</option><option>Cancelled</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Result Value</label>
+          <input type="text" class="form-control" id="editResult" placeholder="e.g. 13.2">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Report Date</label>
+          <input type="date" class="form-control" id="editReportDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select class="form-control" id="editPriority">
+            <option>Routine</option><option>Urgent</option><option>STAT</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Remarks</label>
+          <textarea class="form-control" id="editRemarks" rows="3"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('editOrderModal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-primary" id="saveOrderBtn" onclick="saveOrder()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'lab-orders', title: 'Laboratory', subtitle: 'Diagnostics' });
+
+  let allOrders = [];
+  let ordPage = 1;
+  const perPage = 10;
+
+  async function init() {
+    const [oData, tData] = await Promise.all([LabAPI.listOrders(), LabAPI.listTests()]);
+    allOrders = oData?.orders || [];
+
+    document.getElementById('totalOrders').textContent     = allOrders.length;
+    document.getElementById('pendingOrders').textContent   = allOrders.filter(o => ['Ordered','Sample Collected','Processing'].includes(o.status)).length;
+    document.getElementById('completedOrders').textContent = allOrders.filter(o => o.status === 'Completed').length;
+    document.getElementById('catalogTests').textContent    = tData?.tests?.length ?? '—';
+    renderTable();
+  }
+
+  function getFiltered() {
+    const q  = (document.getElementById('orderSearch').value||'').toLowerCase();
+    const st = document.getElementById('statusFilter').value;
+    const pr = document.getElementById('priorityFilter').value;
+    return allOrders.filter(o => {
+      const matchQ  = !q || (o.patient_name||'').toLowerCase().includes(q) || (o.test_name||'').toLowerCase().includes(q);
+      const matchSt = !st || o.status === st;
+      const matchPr = !pr || o.priority === pr;
+      return matchQ && matchSt && matchPr;
+    });
+  }
+
+  function renderTable() {
+    const f = getFiltered();
+    const page = f.slice((ordPage-1)*perPage, ordPage*perPage);
+    document.getElementById('orderTable').innerHTML = page.length
+      ? page.map(o => `
+        <tr>
+          <td class="fw-600">LAB-${String(o.order_id).padStart(4,'0')}</td>
+          <td>
+            <div class="patient-cell">
+              <div class="patient-avatar" style="width:28px;height:28px;font-size:10px;">${initials(o.patient_name||'')}</div>
+              <span>${o.patient_name||'Patient #'+o.patient_id}</span>
+            </div>
+          </td>
+          <td class="fw-600">${o.test_name||'Test #'+o.test_id}</td>
+          <td>${statusBadge(o.priority)}</td>
+          <td>${statusBadge(o.status)}</td>
+          <td>${o.result_value ? `<span class="fw-600">${o.result_value}</span> <span class="text-muted">${o.test_unit||''}</span>` : '<span class="text-muted">Awaited</span>'}</td>
+          <td class="text-muted">${formatDate(o.order_date)}</td>
+          <td>
+            <div class="d-flex gap-8">
+              <button class="btn-icon btn-icon-edit" onclick="openEditOrder(${JSON.stringify(o).replace(/"/g,'&quot;')})" title="Update result">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn-icon btn-icon-danger" onclick="deleteOrder(${o.order_id})" title="Delete">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('')
+      : `<tr><td colspan="8"><div class="empty-state"><h4>No lab orders found</h4></div></td></tr>`;
+    buildPagination(document.getElementById('orderPagination'), f.length, ordPage, perPage, p => { ordPage=p; renderTable(); });
+  }
+
+  document.getElementById('orderSearch').addEventListener('input', () => { ordPage=1; renderTable(); });
+  document.getElementById('statusFilter').addEventListener('change', () => { ordPage=1; renderTable(); });
+  document.getElementById('priorityFilter').addEventListener('change', () => { ordPage=1; renderTable(); });
+
+  function openEditOrder(o) {
+    document.getElementById('editOrderId').value    = o.order_id;
+    document.getElementById('editStatus').value     = o.status;
+    document.getElementById('editResult').value     = o.result_value || '';
+    document.getElementById('editReportDate').value = String(o.report_date || '').slice(0, 10);
+    document.getElementById('editPriority').value   = o.priority || 'Routine';
+    document.getElementById('editRemarks').value    = o.remarks || '';
+    document.getElementById('editOrderModal').classList.add('show');
+  }
+
+  async function saveOrder() {
+    const id = document.getElementById('editOrderId').value;
+    const btn = document.getElementById('saveOrderBtn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    const rd = document.getElementById('editReportDate').value;
+    const body = {
+      status:       document.getElementById('editStatus').value,
+      result_value: document.getElementById('editResult').value.trim(),
+      report_date:  rd ? rd + ' 00:00:00' : null,
+      priority:     document.getElementById('editPriority').value,
+      remarks:      document.getElementById('editRemarks').value.trim(),
+    };
+    const res = await LabAPI.updateOrder(id, body);
+    btn.textContent = 'Save Changes'; btn.disabled = false;
+    if (res) {
+      showToast('Lab order updated.', 'success');
+      document.getElementById('editOrderModal').classList.remove('show');
+      await init();
+    }
+  }
+
+  async function deleteOrder(id) {
+    const ok = await confirmDialog({ title:'Delete Order?', message:'This will permanently remove this lab order.', confirmText:'Delete' });
+    if (!ok) return;
+    const res = await LabAPI.removeOrder(id);
+    if (res !== null) { showToast('Order deleted.', 'success'); await init(); }
+  }
+
+  init();
+</script>
+</body>
+</html>
