@@ -36,7 +36,7 @@ async function request(path, options = {}) {
     const res = await fetch(url, { ...options, headers });
     const data = await res.json();
     if (!res.ok) {
-      const msg = data?.error || `HTTP ${res.status}`;
+      const msg = data?.error || data?.message || `HTTP ${res.status}`;
       showToast(msg, "error");
       return null;
     }
@@ -154,19 +154,25 @@ const AuthAPI = {
   verifyOtp: (challenge, otp) => request("/auth/verify-otp", { method: "POST", body: JSON.stringify({ challenge, otp }) }),
 };
 
-/* ---------------- Toast helper ---------------- */
-function showToast(msg, type = "info") {
-  let toast = document.getElementById("toast");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "toast";
-    toast.className = "toast";
-    document.body.appendChild(toast);
-  }
-  toast.textContent = msg;
-  toast.className = `toast toast-${type} show`;
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => toast.classList.remove("show"), 3500);
+/* ---------------- Toast helper ----------------
+   ui.js (loaded before this file on every app page) provides the rich
+   toast with icon + title inside #toast-container. This minimal fallback
+   is installed ONLY when ui.js is absent, so the whole project uses one
+   consistent toast and success/error messages never get lost. */
+if (typeof window.showToast !== "function") {
+  window.showToast = function (msg, type = "info") {
+    let toast = document.getElementById("toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "toast";
+      toast.className = "toast";
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.className = `toast toast-${type} show`;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.remove("show"), 3500);
+  };
 }
 
 /* ---------------- Mock fallback (for local preview) ---------------- */
