@@ -1,4 +1,4 @@
-# MediCore Hospital — frontend image
+# HealtheCare Hospital — frontend image
 # Serves the static hospital dashboard with Nginx, mirroring the EC2
 # production setup. The frontend talks directly to the AWS API, whose
 # URL is baked in at build time:
@@ -9,7 +9,7 @@
 #
 FROM docker.io/library/nginx:1.27-alpine
 
-ARG API_BASE_URL=https://nxtj3v8r6c.execute-api.us-east-1.amazonaws.com/prod
+ARG API_BASE_URL=https://s1gx9piqf1.execute-api.us-east-1.amazonaws.com/prod
 
 # Nginx site config: gzip, long cache for static assets, SPA fallback.
 RUN rm /etc/nginx/conf.d/default.conf && cat > /etc/nginx/conf.d/hospital.conf <<'NGINX'
