@@ -2047,3 +2047,44 @@ thead th { position: sticky; top: 0; z-index: 2; }
 .btn-primary:hover, .btn-login:hover { background-position: 90% 0; }
 ::selection { background: rgba(13,148,136,.28); }
 img { -webkit-user-drag: none; }
+
+/* ════════════════════════════════════════════════════════════════
+   DARK THEME — activated by the topbar toggle (html[data-theme="dark"]).
+   The whole UI is built on CSS variables, so remapping the palette
+   flips every page at once. Choice persists in localStorage (hms_theme).
+   ════════════════════════════════════════════════════════════════ */
+#themeToggleBtn .theme-icon-sun { display: none; }
+html[data-theme="dark"] #themeToggleBtn .theme-icon-sun { display: block; }
+html[data-theme="dark"] #themeToggleBtn .theme-icon-moon { display: none; }
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --white: #131c2e;
+  --gray-50:  #0c1424;
+  --gray-100: #1a2438;
+  --gray-200: #27334d;
+  --gray-300: #35445f;
+  --gray-400: #8494ad;
+  --gray-500: #a3b1c6;
+  --gray-600: #c6d0de;
+  --gray-700: #e2e8f0;
+  --gray-800: #eef2f7;
+  --gray-900: #f8fafc;
+  --blue-50:  rgba(59,130,246,.16);
+  --blue-100: rgba(59,130,246,.26);
+  --teal-50:  rgba(20,184,166,.14);
+  --teal-100: rgba(20,184,166,.24);
+  --green-50: rgba(34,197,94,.14);
+  --amber-50: rgba(245,158,11,.14);
+  --red-50:   rgba(239,68,68,.15);
+  --purple-50: rgba(168,85,247,.16);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.40);
+  --shadow:    0 1px 3px rgba(0,0,0,.45), 0 4px 16px rgba(0,0,0,.35);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.40), 0 10px 30px rgba(0,0,0,.40);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,.45), 0 20px 40px rgba(0,0,0,.50);
+}
+html[data-theme="dark"] body { background: #0a1120; }
+html[data-theme="dark"] .btn-outline { background: var(--white); }
+html[data-theme="dark"] .switch .slider::before { background: #e2e8f0; }
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #35445f; }
+html[data-theme="dark"] ::selection { background: rgba(59,130,246,.45); }

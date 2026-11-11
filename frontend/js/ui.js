@@ -12,6 +12,20 @@ function _prefix() {
   return parts.some(p => MODULE_DIRS.includes(p)) ? '../' : '';
 }
 
+/* ── Theme (dark mode): apply the saved choice as early as possible ── */
+try {
+  if (localStorage.getItem('hms_theme') === 'dark') {
+    document.documentElement.dataset.theme = 'dark';
+  }
+} catch (e) { /* storage unavailable — stay on light theme */ }
+
+function toggleTheme() {
+  const dark = document.documentElement.dataset.theme !== 'dark';
+  if (dark) document.documentElement.dataset.theme = 'dark';
+  else delete document.documentElement.dataset.theme;
+  try { localStorage.setItem('hms_theme', dark ? 'dark' : 'light'); } catch (e) {}
+}
+
 /* ── Build sidebar HTML with correct relative paths ──────── */
 function buildSidebarHTML() {
   const p = _prefix();
@@ -302,6 +316,18 @@ function buildTopbar(title, subtitle) {
   </div>
   <div class="topbar-right">
     <div class="topbar-date" id="topbarDate"></div>
+    <button class="topbar-btn" id="themeToggleBtn" title="Toggle dark mode">
+      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+      </svg>
+      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+        <path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+      </svg>
+    </button>
     <button class="topbar-btn" title="Notifications">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -410,6 +436,9 @@ function initApp(opts = {}) {
   document.getElementById('topbarSettingsBtn')?.addEventListener('click', () => {
     window.location.href = resolveRoot('settings.html');
   });
+
+  /* Dark mode toggle */
+  document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
 
   /* Date */
   const dateEl = document.getElementById('topbarDate');
