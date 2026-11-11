@@ -126,6 +126,23 @@ const LabAPI = {
   pending:    ()        => request("/lab/pending"),
 };
 
+/* ---------------- PHARMACY ---------------- */
+const PharmacyAPI = {
+  listMedicines:  ()        => request("/pharmacy/medicines"),
+  getMedicine:    (id)      => request(`/pharmacy/medicines/${id}`),
+  createMedicine: (body)    => request("/pharmacy/medicines",        { method: "POST",   body: JSON.stringify(body) }),
+  updateMedicine: (id, b)   => request(`/pharmacy/medicines/${id}`,  { method: "PUT",    body: JSON.stringify(b) }),
+  removeMedicine: (id)      => request(`/pharmacy/medicines/${id}`,  { method: "DELETE" }),
+
+  listPrescriptions: ()     => request("/pharmacy/prescriptions"),
+  getPrescription:   (id)   => request(`/pharmacy/prescriptions/${id}`),
+  createPrescription:(body) => request("/pharmacy/prescriptions",        { method: "POST",   body: JSON.stringify(body) }),
+  updatePrescription:(id, b)=> request(`/pharmacy/prescriptions/${id}`,  { method: "PUT",    body: JSON.stringify(b) }),
+  removePrescription:(id)   => request(`/pharmacy/prescriptions/${id}`,  { method: "DELETE" }),
+  prescriptionsForPatient: (pid) => request(`/pharmacy/prescriptions/patient/${pid}`),
+  lowStock:       ()        => request("/pharmacy/low-stock"),
+};
+
 /* ---------------- AUTH ---------------- */
 const AuthAPI = {
   // POST /auth/login — returns whatever the auth Lambda returns (e.g. { token, user }).
@@ -167,6 +184,9 @@ function mockFallback(path) {
     "/lab/tests":             { count: 12, tests: MOCK_DATA.labTests },
     "/lab/orders":            { count: 6, orders: MOCK_DATA.labOrders },
     "/lab/pending":           { count: 3, orders: MOCK_DATA.labOrders.filter(o => o.status !== "Completed") },
+    "/pharmacy/medicines":    { count: 12, medicines: MOCK_DATA.medicines },
+    "/pharmacy/prescriptions": { count: 6, prescriptions: MOCK_DATA.prescriptions },
+    "/pharmacy/low-stock":    { count: 1, medicines: MOCK_DATA.medicines.filter(m => m.stock_quantity <= m.reorder_level) },
   };
   return Promise.resolve(m[path] || { message: "ok" });
 }
@@ -226,5 +246,14 @@ const MOCK_DATA = {
     { order_id:1, patient_id:1, patient_name:"Rahul Sharma", test_id:4, test_name:"Lipid Profile", ordered_by:1, doctor_name:"Dr. Anil Gupta", order_date:"2026-10-01", priority:"Routine", status:"Completed", result_value:"182", test_unit:"mg/dL", report_date:"2026-10-02" },
     { order_id:4, patient_id:4, patient_name:"Sneha Reddy", test_id:10, test_name:"Dengue NS1 Antigen", ordered_by:4, doctor_name:"Dr. Sunita Kapoor", order_date:"2026-08-05", priority:"Urgent", status:"Sample Collected", result_value:null, test_unit:"", report_date:null },
     { order_id:5, patient_id:5, patient_name:"Karan Singh", test_id:3, test_name:"HbA1c (Glycated Hb)", ordered_by:1, doctor_name:"Dr. Anil Gupta", order_date:"2026-07-10", priority:"Routine", status:"Processing", result_value:null, test_unit:"%", report_date:null },
+  ],
+  medicines: [
+    { medicine_id:1, medicine_name:"Paracetamol 500mg", generic_name:"Paracetamol", category:"Analgesic", manufacturer:"Cipla", unit:"Tablet", unit_price:2.50, stock_quantity:1200, reorder_level:200, expiry_date:"2027-06-30", requires_prescription:0 },
+    { medicine_id:3, medicine_name:"Amlodipine 5mg", generic_name:"Amlodipine", category:"Cardiac", manufacturer:"Dr Reddy's", unit:"Tablet", unit_price:4.20, stock_quantity:600, reorder_level:100, expiry_date:"2027-03-31", requires_prescription:1 },
+    { medicine_id:11, medicine_name:"Insulin Glargine", generic_name:"Insulin Glargine", category:"Diabetic", manufacturer:"Sanofi", unit:"Injection", unit_price:540, stock_quantity:42, reorder_level:15, expiry_date:"2026-07-31", requires_prescription:1 },
+  ],
+  prescriptions: [
+    { prescription_id:1, patient_id:1, patient_name:"Rahul Sharma", doctor_id:1, doctor_name:"Dr. Anil Gupta", medicine_id:3, medicine_name:"Amlodipine 5mg", medicine_unit:"Tablet", quantity:30, dosage:"5mg", frequency:"Once a day", duration_days:30, total_amount:126, status:"Dispensed", prescribed_date:"2026-10-01" },
+    { prescription_id:4, patient_id:4, patient_name:"Sneha Reddy", doctor_id:4, doctor_name:"Dr. Sunita Kapoor", medicine_id:10, medicine_name:"Salbutamol Inhaler", medicine_unit:"Inhaler", quantity:1, dosage:"2 puffs", frequency:"As needed", duration_days:30, total_amount:165, status:"Pending", prescribed_date:"2026-08-05" },
   ],
 };

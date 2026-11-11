@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medicine Catalog — HealtheCare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=6">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content fade-in">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Medicine Catalog</h1>
+          <p>Medicines in stock, with prices and expiry dates</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary btn-sm" onclick="openMedModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+            Add Medicine
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-toolbar">
+          <div class="table-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="medSearch" placeholder="Search medicines…">
+          </div>
+          <div class="table-filters">
+            <select class="form-control" id="categoryFilter" style="width:auto;padding:7px 12px;">
+              <option value="">All Categories</option>
+              <option>Antibiotic</option><option>Analgesic</option><option>Antacid</option>
+              <option>Cardiac</option><option>Diabetic</option><option>Antihistamine</option>
+              <option>Vitamin</option><option>Steroid</option><option>First Aid</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Medicine</th><th>Category</th><th>Unit</th><th>Price</th>
+                <th>Stock</th><th>Expiry</th><th>Prescription</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="medicineTable"><tr><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="medPagination"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Medicine Modal -->
+<div class="modal-overlay" id="medModal">
+  <div class="modal fade-in">
+    <div class="modal-header">
+      <h3 id="medModalTitle">Add Medicine</h3>
+      <button class="modal-close" onclick="document.getElementById('medModal').classList.remove('show')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="medicineId">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Medicine Name <span class="required">*</span></label>
+          <input type="text" class="form-control" id="medName" placeholder="e.g. Paracetamol 500mg">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Generic Name</label>
+          <input type="text" class="form-control" id="medGeneric" placeholder="e.g. Paracetamol">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-control" id="medCategory">
+            <option>Antibiotic</option><option>Analgesic</option><option>Antacid</option>
+            <option>Cardiac</option><option>Diabetic</option><option>Antihistamine</option>
+            <option>Vitamin</option><option>Steroid</option><option>First Aid</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Manufacturer</label>
+          <input type="text" class="form-control" id="medMaker" placeholder="e.g. Cipla">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          <input type="text" class="form-control" id="medUnit" placeholder="Tablet, Syrup…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit Price (₹)</label>
+          <input type="number" class="form-control" id="medPrice" min="0" step="0.01" placeholder="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock Quantity</label>
+          <input type="number" class="form-control" id="medStock" min="0" placeholder="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reorder Level</label>
+          <input type="number" class="form-control" id="medReorder" min="0" placeholder="20">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expiry Date</label>
+          <input type="date" class="form-control" id="medExpiry">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Requires Prescription</label>
+          <select class="form-control" id="medRx">
+            <option value="1">Yes</option><option value="0">No (OTC)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('medModal').classList.remove('show')">Cancel</button>
+      <button class="btn btn-primary" id="saveMedBtn" onclick="saveMed()">Save Medicine</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script src="../js/api.js"></script>
+<script>
+  initApp({ page: 'medicine-catalog', title: 'Medicine Catalog', subtitle: 'Pharmacy' });
+
+  let allMeds = [];
+  let medPage = 1;
+  const perPage = 10;
+
+  async function init() {
+    const data = await PharmacyAPI.listMedicines();
+    allMeds = data?.medicines || [];
+    renderTable();
+  }
+
+  function getFiltered() {
+    const q = (document.getElementById('medSearch').value||'').toLowerCase();
+    const cat = document.getElementById('categoryFilter').value;
+    return allMeds.filter(m => {
+      const matchQ = !q || (m.medicine_name||'').toLowerCase().includes(q) || (m.generic_name||'').toLowerCase().includes(q);
+      const matchC = !cat || m.category === cat;
+      return matchQ && matchC;
+    });
+  }
+
+  function renderTable() {
+    const f = getFiltered();
+    const page = f.slice((medPage-1)*perPage, medPage*perPage);
+    document.getElementById('medicineTable').innerHTML = page.length
+      ? page.map(m => {
+          const low = Number(m.stock_quantity) <= Number(m.reorder_level);
+          return `
+        <tr>
+          <td class="fw-600">${m.medicine_name||'—'}<div class="text-muted" style="font-size:11px;">${m.generic_name||''} · ${m.manufacturer||''}</div></td>
+          <td>${statusBadge(m.category)}</td>
+          <td>${m.unit||'—'}</td>
+          <td class="fw-600">${typeof formatCurrency === 'function' ? formatCurrency(m.unit_price) : '₹' + Number(m.unit_price||0).toLocaleString('en-IN')}</td>
+          <td>${low ? `<span class="fw-600" style="color:var(--red-600);">${m.stock_quantity} ⚠ Low</span>` : `<span class="fw-600">${m.stock_quantity}</span>`}</td>
+          <td class="text-muted">${formatDate(m.expiry_date)}</td>
+          <td>${Number(m.requires_prescription) === 1 ? statusBadge('Rx Required') : statusBadge('OTC')}</td>
+          <td>
+            <div class="d-flex gap-8">
+              <button class="btn-icon btn-icon-edit" onclick="openMedModal(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="Edit">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn-icon btn-icon-danger" onclick="deleteMed(${m.medicine_id})" title="Delete">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`; }).join('')
+      : `<tr><td colspan="8"><div class="empty-state"><h4>No medicines found</h4></div></td></tr>`;
+    buildPagination(document.getElementById('medPagination'), f.length, medPage, perPage, p => { medPage=p; renderTable(); });
+  }
+
+  document.getElementById('medSearch').addEventListener('input', () => { medPage=1; renderTable(); });
+  document.getElementById('categoryFilter').addEventListener('change', () => { medPage=1; renderTable(); });
+
+  function openMedModal(m) {
+    document.getElementById('medModalTitle').textContent = m ? 'Edit Medicine' : 'Add Medicine';
+    document.getElementById('medicineId').value  = m?.medicine_id || '';
+    document.getElementById('medName').value     = m?.medicine_name || '';
+    document.getElementById('medGeneric').value  = m?.generic_name || '';
+    document.getElementById('medCategory').value = m?.category || 'Other';
+    document.getElementById('medMaker').value    = m?.manufacturer || '';
+    document.getElementById('medUnit').value     = m?.unit || 'Tablet';
+    document.getElementById('medPrice').value    = m?.unit_price ?? '';
+    document.getElementById('medStock').value    = m?.stock_quantity ?? '';
+    document.getElementById('medReorder').value  = m?.reorder_level ?? 20;
+    document.getElementById('medExpiry').value   = m?.expiry_date?.split('T')[0] || '';
+    document.getElementById('medRx').value       = String(m?.requires_prescription ?? 1);
+    document.getElementById('medModal').classList.add('show');
+  }
+
+  async function saveMed() {
+    const id = document.getElementById('medicineId').value;
+    const name = document.getElementById('medName').value.trim();
+    if (!name) { showToast('Medicine name is required.', 'warning'); return; }
+    const btn = document.getElementById('saveMedBtn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    const body = {
+      medicine_name:        name,
+      generic_name:         document.getElementById('medGeneric').value.trim(),
+      category:             document.getElementById('medCategory').value,
+      manufacturer:         document.getElementById('medMaker').value.trim(),
+      unit:                 document.getElementById('medUnit').value.trim() || 'Tablet',
+      unit_price:           parseFloat(document.getElementById('medPrice').value) || 0,
+      stock_quantity:       parseInt(document.getElementById('medStock').value) || 0,
+      reorder_level:        parseInt(document.getElementById('medReorder').value) || 20,
+      expiry_date:          document.getElementById('medExpiry').value || null,
+      requires_prescription: parseInt(document.getElementById('medRx').value),
+    };
+    const res = id ? await PharmacyAPI.updateMedicine(id, body) : await PharmacyAPI.createMedicine(body);
+    btn.textContent = 'Save Medicine'; btn.disabled = false;
+    if (res) {
+      showToast(id ? 'Medicine updated.' : 'Medicine added to catalog.', 'success');
+      document.getElementById('medModal').classList.remove('show');
+      await init();
+    }
+  }
+
+  async function deleteMed(id) {
+    const ok = await confirmDialog({ title:'Delete Medicine?', message:'This will remove the medicine from the catalog.', confirmText:'Delete' });
+    if (!ok) return;
+    const res = await PharmacyAPI.removeMedicine(id);
+    if (res !== null) { showToast('Medicine deleted.', 'success'); await init(); }
+  }
+
+  init();
+</script>
+</body>
+</html>
