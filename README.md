@@ -8,25 +8,57 @@ MySQL databases**, **7 serverless Lambda microservices**, **API Gateway**,
 ## Project Structure
 ```
 AWS-Hospital-Management-System/
-├── frontend/          3D animated UI (HTML + CSS + JS)
-│   ├── index.html, login.html, dashboard.html
-│   ├── patients/   billing/   diseases/   doctors/
-│   ├── css/style.css
-│   └── js/  api.js, patients.js, billing.js, diseases.js, doctors.js
-├── backend/           4 AWS Lambda functions
-│   ├── patient-lambda/   billing-lambda/
-│   ├── disease-lambda/   doctor-lambda/
-│   └── (each has lambda_function.py, db_connection.py, requirements.txt)
-├── database/          4 MySQL schemas + sample data
-│   ├── hospital_patients/   hospital_billing/
-│   ├── hospital_diseases/   hospital_doctors/
-│   └── sample_data.sql
-├── aws/               AWS service config docs
-│   ├── api-gateway/  ec2/  s3/  lambda/  rds/  ses-smtp/  iam/
-├── email/             SES SMTP module + HTML templates
-├── config/            config.py + .env.example
-├── docs/              architecture, database-design, api-documentation
-├── terraform/         Infrastructure as Code
+│
+├── frontend/                    → Website (jo user dekhta hai)
+│   ├── patients/                → Add / View / History
+│   ├── billing/                 → Create Bill / Payments / Pending Dues
+│   ├── diseases/                → Add Disease / History
+│   ├── doctors/                 → Add / Assign / Appointments
+│   ├── laboratory/              → Lab Orders / Order Test / Test Catalog
+│   ├── pharmacy/                → Prescriptions / Add / Medicine Catalog
+│   ├── js/                      → api.js (server se baat), ui.js (design + dark mode),
+│   │                              patients/billing/diseases/doctors/laboratory/pharmacy.js
+│   ├── css/style.css            → pura design
+│   ├── dashboard.html           → main dashboard
+│   ├── login.html               → OTP + JWT login
+│   ├── index.html               → landing page
+│   ├── reports.html
+│   └── settings.html
+│
+├── backend/                     → Server-side code (7 Lambda services)
+│   ├── auth-lambda/             → Login + OTP + JWT
+│   ├── patient-lambda/          → Patients API
+│   ├── billing-lambda/          → Bills + Payments API
+│   ├── disease-lambda/          → Diseases API
+│   ├── doctor-lambda/           → Doctors + Assignments API
+│   ├── lab-lambda/              → Laboratory API
+│   ├── pharmacy-lambda/         → Pharmacy API
+│   └── local_server.py          → computer pe chalane ke liye
+│      (har service: lambda_function.py + db_connection.py — db_connection
+│       apne RDS instance se judta hai, dusre databases ko live padhta hai)
+│
+├── database/                    → 6 MySQL databases (har ek apne RDS instance pe)
+│   ├── hospital_patients/       → schema + patients_sample_data.sql
+│   ├── hospital_billing/        → bills/payments schemas + billing_sample_data.sql
+│   ├── hospital_diseases/       → schema + diseases_sample_data.sql
+│   ├── hospital_doctors/        → doctors/assignments schemas + doctors_sample_data.sql
+│   ├── hospital_lab/            → laboratory.sql + lab_sample_data.sql
+│   ├── hospital_pharmacy/       → pharmacy.sql + pharmacy_sample_data.sql
+│   └── sample_data.sql          → combined sample data (local/single-instance)
+│
+├── terraform/                   → AWS pe deploy karne ka code
+│   ├── main.tf                  → VPC, 6× RDS, 7× Lambda, API, S3, EC2 — sab
+│   ├── variables.tf
+│   ├── outputs.tf               → rds_endpoints (saare 6 addresses), api_gateway_url, …
+│   └── deploy.sh
+│
+├── aws/                         → AWS guides (api-gateway, ec2, iam, lambda, rds, s3, ses-smtp)
+├── docker/ + Dockerfile(+ .backend) + docker-compose.yml → Docker images + local stack
+├── docs/                        → MANUAL_DEPLOY.md, architecture, CICD
+├── email/                       → Email templates + SMTP (OTP + receipts)
+├── config/                      → config.py + .env.example
+├── scripts/                     → validate_frontend.py
+├── .github/workflows/           → CI/CD pipeline
 └── requirements.txt   .gitignore   README.md
 ```
 
