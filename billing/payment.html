@@ -118,14 +118,16 @@
   initApp({ page: 'payment', title: 'Payments', subtitle: 'Billing' });
 
   let allPayments = [];
+  let allBills = [];
 
   async function init() {
     document.getElementById('payDate').value = new Date().toISOString().split('T')[0];
 
     /* Fill bill select */
     const bills = await BillingAPI.listBills();
+    allBills = bills?.bills || [];
     const sel = document.getElementById('payBillSelect');
-    (bills?.bills||[]).filter(b => b.status !== 'Paid').forEach(b => {
+    allBills.filter(b => b.status !== 'Paid').forEach(b => {
       const o = document.createElement('option');
       o.value = b.bill_id;
       o.textContent = `#INV-${String(b.bill_id).padStart(5,'0')} — ${b.patient_name||'Patient '+b.patient_id} (${formatCurrency(b.net_amount)})`;
@@ -193,8 +195,10 @@
     const btn = document.getElementById('recordPayBtn');
     btn.textContent = 'Processing…'; btn.disabled = true;
 
+    const bill = allBills.find(b => String(b.bill_id) === String(bid));
     const body = {
       bill_id:        parseInt(bid),
+      patient_id:     bill ? parseInt(bill.patient_id) : null,
       amount_paid:    amount,
       payment_method: document.getElementById('payMethod').value,
       transaction_id: document.getElementById('payTxnId').value.trim() || ('TXN-' + Date.now()),
