@@ -1,7 +1,0 @@
-# Ignore rules for the BACKEND image build only (BuildKit uses
-# <Dockerfile>.dockerignore when present). The root .dockerignore is
-# written for the frontend image and excludes backend/ — this file
-# overrides it so the backend build can see its source.
-.git
-**/__pycache__
-**/*.pyc
