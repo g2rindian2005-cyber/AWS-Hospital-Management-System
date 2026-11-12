@@ -29,7 +29,7 @@ env:
   # IMPORTANT: the default is only a placeholder. After every fresh
   # Terraform deploy, set the repo variable API_BASE_URL to the new
   # api_gateway_url output, or the frontend gets baked with a dead URL.
-  API_BASE_URL: ${{ vars.API_BASE_URL || 'https://riiag2wbsf.execute-api.us-east-1.amazonaws.com/prod' }}
+  API_BASE_URL: ${{ vars.API_BASE_URL || 'https://abc123.execute-api.us-east-1.amazonaws.com/prod' }}
   FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET || 'hospital-management-frontend-bucket' }}
   PYTHON_VERSION: "3.11"
   NODE_VERSION: "20"
@@ -72,7 +72,7 @@ jobs:
       - name: Import-test Lambda handlers
         run: |
           set -euo pipefail
-          for dir in backend/patient-lambda backend/billing-lambda backend/disease-lambda backend/doctor-lambda backend/lab-lambda backend/pharmacy-lambda; do
+          for dir in backend/patient-lambda backend/billing-lambda backend/disease-lambda backend/doctor-lambda backend/lab-lambda backend/pharmacy-lambda backend/db-init-lambda; do
             echo "Importing $dir"
             (cd "$dir" && python -c "import lambda_function; assert callable(lambda_function.lambda_handler)")
           done
@@ -143,6 +143,20 @@ jobs:
           for name in "${!services[@]}"; do
             (cd "backend/${services[$name]}" && zip -qr "$GITHUB_WORKSPACE/dist/lambda/$name.zip" . -x '__pycache__/*' '*.pyc')
           done
+
+          # db-init package: handler + the SQL files it runs. The single
+          # source of truth for the SQL stays in database/.
+          rm -rf /tmp/db-init-stage
+          mkdir -p /tmp/db-init-stage/sql
+          cp backend/db-init-lambda/lambda_function.py /tmp/db-init-stage/
+          cp database/hospital_patients/patients.sql database/hospital_patients/patients_sample_data.sql \
+             database/hospital_doctors/doctors.sql database/hospital_doctors/doctor_assignments.sql database/hospital_doctors/doctors_sample_data.sql \
+             database/hospital_diseases/diseases.sql database/hospital_diseases/diseases_sample_data.sql \
+             database/hospital_billing/bills.sql database/hospital_billing/payments.sql database/hospital_billing/billing_sample_data.sql \
+             database/hospital_lab/laboratory.sql database/hospital_lab/lab_sample_data.sql \
+             database/hospital_pharmacy/pharmacy.sql database/hospital_pharmacy/pharmacy_sample_data.sql \
+             /tmp/db-init-stage/sql/
+          (cd /tmp/db-init-stage && zip -qr "$GITHUB_WORKSPACE/dist/lambda/db-init.zip" .)
           find dist -type f -print
 
       - name: Package build artifact
@@ -211,6 +225,7 @@ jobs:
             --compatible-runtimes python3.11 \
             --query LayerVersionArn --output text)
           echo "Published dependency layer: $layer_arn"
+          echo "LAYER_ARN=$layer_arn" >> "$GITHUB_ENV"
 
           for service in patient billing disease doctor auth lab pharmacy; do
             function_name="$PROJECT_NAME-$service-service"
@@ -225,6 +240,17 @@ jobs:
               --layers "$layer_arn" >/dev/null
             aws lambda wait function-updated --function-name "$function_name"
           done
+
+      - name: Initialise databases (tables + sample data)
+        run: |
+          set -euo pipefail
+          # Automatic — no manual SQL step. Creates the db-init function
+          # if Terraform has not created it yet, then runs it. The init
+          # is idempotent, so re-running it on every deploy is safe.
+          python3 scripts/ensure_db_init_lambda.py \
+            --zip dist/lambda/db-init.zip \
+            --layer-arn "$LAYER_ARN" \
+            --project "$PROJECT_NAME"
 
       - name: Deploy frontend to S3
         run: |
@@ -307,6 +333,32 @@ jobs:
             cat /tmp/auth-smoke.json
             exit 1
           fi
+
+          # Data-endpoint check: real login (the OTP is shown on screen
+          # while SES is unverified), then GET /patients must return 200.
+          # A dead/uninitialised database fails HERE in CI — never again
+          # as a blank 502 in front of a user.
+          login_resp=$(curl -s -X POST "$API_BASE_URL/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"admin","password":"admin123"}')
+          challenge=$(printf '%s' "$login_resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('challenge',''))")
+          dev_otp=$(printf '%s' "$login_resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dev_otp',''))")
+          if [ -z "$dev_otp" ]; then
+            echo "OTP is emailed (SES verified) — skipping live data check; login itself passed."
+          else
+            token=$(curl -s -X POST "$API_BASE_URL/auth/verify-otp" \
+              -H 'Content-Type: application/json' \
+              -d "{\"challenge\":\"$challenge\",\"otp\":\"$dev_otp\"}" \
+              | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))")
+            [ -n "$token" ] || { echo "::error::OTP verify did not return a token"; exit 1; }
+            patients_status=$(curl -s -o /tmp/patients.json -w '%{http_code}' "$API_BASE_URL/patients" -H "Authorization: Bearer $token")
+            if [ "$patients_status" != "200" ]; then
+              echo "::error::GET /patients returned $patients_status — the database is not reachable or not initialised. Check RDS + SQL init (README STEP 4)."
+              cat /tmp/patients.json
+              exit 1
+            fi
+            echo "Live data check passed: /patients returned 200"
+          fi
           echo "Live smoke tests passed"
 
       - name: Write deployment summary
@@ -319,6 +371,6 @@ jobs:
             echo "- API: $API_BASE_URL"
             echo "- S3 site: http://$FRONTEND_BUCKET.s3-website.$AWS_REGION.amazonaws.com/login.html"
             echo "- Pages site: https://g2rindian2005-cyber.github.io/AWS-Hospital-Management-System/login.html"
-            echo "- Lambdas: patient, billing, disease, doctor, auth, lab, pharmacy"
+            echo "- Lambdas: patient, billing, disease, doctor, auth, lab, pharmacy, db-init (databases auto-initialised)"
           } >> "$GITHUB_STEP_SUMMARY"
 
