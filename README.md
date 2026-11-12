@@ -53,7 +53,6 @@ AWS-Hospital-Management-System/
 │   └── deploy.sh
 │
 ├── aws/                         → AWS guides (api-gateway, ec2, iam, lambda, rds, s3, ses-smtp)
-├── docker/ + Dockerfile(+ .backend) + docker-compose.yml → Docker images + local stack
 ├── docs/                        → MANUAL_DEPLOY.md, architecture, CICD
 ├── email/                       → Email templates + SMTP (OTP + receipts)
 ├── config/                      → config.py + .env.example

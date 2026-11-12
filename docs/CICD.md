@@ -75,25 +75,14 @@ The workflow validates Terraform but does **not** run `terraform apply`. The cur
 
 - 2026-11-09: AWS deployment secrets configured in GitHub. Pushes to `main` now run the full pipeline, including deployment.
 
-## Docker image
+## Docker image (removed 2026-11-12)
 
-The pipeline also builds and pushes a Docker image of the frontend
-(Nginx serving the dashboard, wired to the live AWS API — see the
-repo's `Dockerfile`):
-
-- Image: `jawandockerhub/medicore-hospital`
-- Tags: `latest` and the commit SHA, on every push to `main`
-- Run it anywhere: `docker run -p 8080:80 jawandockerhub/medicore-hospital`
-
-This job needs two extra repository secrets:
-
-| Secret | Value |
-|---|---|
-| `DOCKERHUB_USERNAME` | `jawandockerhub` |
-| `DOCKERHUB_TOKEN` | A Docker Hub access token (Docker Hub → Account settings → Personal access tokens → New access token, Read & Write) |
-
-- Docker Hub secrets configured; the pipeline now also publishes `jawandockerhub/medicore-hospital` on each run.
-
-- A backend image (`Dockerfile.backend` + `backend/local_server.py`) and a full local stack (`docker-compose.yml`: MySQL + backend + frontend) were added; the pipeline docker job also publishes `jawandockerhub/medicore-hospital-backend`.
+Docker was removed from the project: `Dockerfile`, `Dockerfile.backend`,
+`docker-compose.yml`, the dockerignore files and `docker/mysql-init/`
+are deleted, and the pipeline's `docker` job was removed. Deployment is
+AWS-native only (Lambda + S3 + Terraform). The previously published
+Docker Hub images (`jawandockerhub/medicore-hospital`,
+`jawandockerhub/medicore-hospital-backend`) still exist on Docker Hub
+but will no longer be updated.
 
 - Manual deployment run requested by Gokul on 2026-11-10.
