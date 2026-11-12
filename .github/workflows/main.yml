@@ -29,7 +29,7 @@ env:
   # IMPORTANT: the default is only a placeholder. After every fresh
   # Terraform deploy, set the repo variable API_BASE_URL to the new
   # api_gateway_url output, or the frontend gets baked with a dead URL.
-  API_BASE_URL: ${{ vars.API_BASE_URL || 'https://abc123.execute-api.us-east-1.amazonaws.com/prod' }}
+  API_BASE_URL: ${{ vars.API_BASE_URL || 'https://riiag2wbsf.execute-api.us-east-1.amazonaws.com/prod' }}
   FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET || 'hospital-management-frontend-bucket' }}
   PYTHON_VERSION: "3.11"
   NODE_VERSION: "20"
