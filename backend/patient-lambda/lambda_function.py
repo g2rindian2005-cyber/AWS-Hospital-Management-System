@@ -14,6 +14,7 @@ hospital_billing, hospital_diseases, and hospital_doctors so every
 database stays in sync through the same identifier.
 """
 import json
+import pymysql
 import datetime
 from db_connection import query, execute
 from db_connection import DB_PATIENTS, DB_BILLING, DB_DISEASES, DB_DOCTORS
@@ -53,7 +54,7 @@ def _json(status, payload):
     }
 
 
-def lambda_handler(event, context):
+def _dispatch(event, context):
     method = event.get("httpMethod", "GET")
     resource = event.get("resource", event.get("path", ""))
     # Shim: terraform routes child paths via {proxy+}, so translate the
@@ -167,3 +168,15 @@ def lambda_handler(event, context):
         return _json(200, {"message": "Patient deleted", "patient_id": int(pid)})
 
     return _json(404, {"error": "Route not found", "resource": resource})
+
+
+def lambda_handler(event, context):
+    """Entry point: converts crashes into readable JSON errors instead of
+    a blank API Gateway 502. A database failure returns 503 with a clear
+    message; any other bug returns 500 with its message."""
+    try:
+        return _dispatch(event, context)
+    except pymysql.MySQLError as e:
+        return _json(503, {"error": "Database unavailable", "detail": str(e)[:200]})
+    except Exception as e:  # noqa: BLE001 - surface any handler bug as JSON
+        return _json(500, {"error": "Internal error", "detail": str(e)[:200]})

@@ -16,6 +16,7 @@ Routes:
     GET    /pharmacy/low-stock                    -> medicines at/below reorder level
 """
 import json
+import pymysql
 from datetime import datetime
 from db_connection import query, execute, fetch_by_ids, DB_PATIENTS, DB_DOCTORS
 
@@ -69,7 +70,7 @@ def _enrich_rx(rows):
     return rows
 
 
-def lambda_handler(event, context):
+def _dispatch(event, context):
     method = event.get("httpMethod", "GET")
     resource = event.get("resource", event.get("path", ""))
     # Shim: terraform routes /pharmacy through {proxy+}, so translate the
@@ -240,3 +241,15 @@ def lambda_handler(event, context):
         return _json(200, {"message": "Prescription deleted", "prescription_id": int(rid)})
 
     return _json(404, {"error": "Route not found", "resource": resource})
+
+
+def lambda_handler(event, context):
+    """Entry point: converts crashes into readable JSON errors instead of
+    a blank API Gateway 502. A database failure returns 503 with a clear
+    message; any other bug returns 500 with its message."""
+    try:
+        return _dispatch(event, context)
+    except pymysql.MySQLError as e:
+        return _json(503, {"error": "Database unavailable", "detail": str(e)[:200]})
+    except Exception as e:  # noqa: BLE001 - surface any handler bug as JSON
+        return _json(500, {"error": "Internal error", "detail": str(e)[:200]})
