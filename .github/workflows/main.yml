@@ -26,7 +26,10 @@ concurrency:
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   PROJECT_NAME: ${{ vars.PROJECT_NAME || 'hospital' }}
-  API_BASE_URL: ${{ vars.API_BASE_URL || 'https://7vh8ixexjf.execute-api.us-east-1.amazonaws.com/prod' }}
+  # IMPORTANT: the default is only a placeholder. After every fresh
+  # Terraform deploy, set the repo variable API_BASE_URL to the new
+  # api_gateway_url output, or the frontend gets baked with a dead URL.
+  API_BASE_URL: ${{ vars.API_BASE_URL || 'https://abc123.execute-api.us-east-1.amazonaws.com/prod' }}
   FRONTEND_BUCKET: ${{ vars.FRONTEND_BUCKET || 'hospital-management-frontend-bucket' }}
   PYTHON_VERSION: "3.11"
   NODE_VERSION: "20"
@@ -69,7 +72,7 @@ jobs:
       - name: Import-test Lambda handlers
         run: |
           set -euo pipefail
-          for dir in backend/patient-lambda backend/billing-lambda backend/disease-lambda backend/doctor-lambda; do
+          for dir in backend/patient-lambda backend/billing-lambda backend/disease-lambda backend/doctor-lambda backend/lab-lambda backend/pharmacy-lambda; do
             echo "Importing $dir"
             (cd "$dir" && python -c "import lambda_function; assert callable(lambda_function.lambda_handler)")
           done
@@ -134,6 +137,8 @@ jobs:
             [disease]="disease-lambda"
             [doctor]="doctor-lambda"
             [auth]="auth-lambda"
+            [lab]="lab-lambda"
+            [pharmacy]="pharmacy-lambda"
           )
           for name in "${!services[@]}"; do
             (cd "backend/${services[$name]}" && zip -qr "$GITHUB_WORKSPACE/dist/lambda/$name.zip" . -x '__pycache__/*' '*.pyc')
@@ -153,11 +158,13 @@ jobs:
   deploy:
     name: Deploy to AWS
     needs: build-test
+    permissions:
+      contents: write
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: http://67.202.28.176/login.html
+      url: https://g2rindian2005-cyber.github.io/AWS-Hospital-Management-System/login.html
     concurrency:
       group: production-deploy
       cancel-in-progress: false
@@ -205,7 +212,7 @@ jobs:
             --query LayerVersionArn --output text)
           echo "Published dependency layer: $layer_arn"
 
-          for service in patient billing disease doctor auth; do
+          for service in patient billing disease doctor auth lab pharmacy; do
             function_name="$PROJECT_NAME-$service-service"
             echo "Deploying $function_name"
             aws lambda update-function-code \
@@ -225,6 +232,24 @@ jobs:
           aws s3 sync dist/frontend/ "s3://$FRONTEND_BUCKET/" --delete
           echo "Frontend deployed to s3://$FRONTEND_BUCKET/"
 
+      - name: Deploy frontend to GitHub Pages
+        run: |
+          set -euo pipefail
+          # The gh-pages branch also carries js/config.js, which wins over
+          # api.js' fallback. Rewrite it from the same API_BASE_URL so the
+          # Pages site never points at a stale (dead-account) API.
+          printf 'window.HMS_CONFIG = { apiBase: "%s" };\n' "$API_BASE_URL" \
+            > dist/frontend/js/config.js
+          echo "Pages config.js now points at $API_BASE_URL"
+
+      - name: Publish to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist/frontend
+          publish_branch: gh-pages
+          commit_message: "Deploy frontend ${{ github.sha }}"
+
       - name: Refresh EC2 frontend when SSH is configured
         continue-on-error: true
         env:
@@ -237,7 +262,11 @@ jobs:
             exit 0
           fi
 
-          host="${EC2_HOST:-67.202.28.176}"
+          if [ -z "${EC2_HOST:-}" ]; then
+            echo "EC2_HOST is not configured; skipping the EC2 copy."
+            exit 0
+          fi
+          host="$EC2_HOST"
           user="${EC2_USER:-ubuntu}"
           mkdir -p ~/.ssh
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/hospital-key.pem
@@ -289,54 +318,7 @@ jobs:
             echo "- Commit: $GITHUB_SHA"
             echo "- API: $API_BASE_URL"
             echo "- S3 site: http://$FRONTEND_BUCKET.s3-website.$AWS_REGION.amazonaws.com/login.html"
-            echo "- EC2 site: http://67.202.28.176/login.html"
-            echo "- Lambdas: patient, billing, disease, doctor, auth"
+            echo "- Pages site: https://g2rindian2005-cyber.github.io/AWS-Hospital-Management-System/login.html"
+            echo "- Lambdas: patient, billing, disease, doctor, auth, lab, pharmacy"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  docker:
-    name: Build & Push Docker Image
-    needs: build-test
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Check Docker Hub secrets
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          if [ -z "${DOCKERHUB_USERNAME:-}" ] || [ -z "${DOCKERHUB_TOKEN:-}" ]; then
-            echo "::error::Missing GitHub secrets. Add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN under Settings -> Secrets and variables -> Actions."
-            exit 1
-          fi
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            jawandockerhub/medicore-hospital:latest
-            jawandockerhub/medicore-hospital:${{ github.sha }}
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.backend
-          push: true
-          tags: |
-            jawandockerhub/medicore-hospital-backend:latest
-            jawandockerhub/medicore-hospital-backend:${{ github.sha }}
