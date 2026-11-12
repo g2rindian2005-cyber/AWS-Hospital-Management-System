@@ -318,6 +318,46 @@ resource "archive_file" "lambda_zip" {
   output_path = "${path.module}/build/${local.lambda_services[count.index].name}.zip"
 }
 
+# DB initialisation package: the db-init Lambda plus the schema + sample
+# SQL files it runs. The SQL files are read from database/ at plan time,
+# so there is a single source of truth — no copies inside the Lambda dir.
+locals {
+  db_init_sql = {
+    "patients.sql"             = "../database/hospital_patients/patients.sql"
+    "patients_sample_data.sql" = "../database/hospital_patients/patients_sample_data.sql"
+    "doctors.sql"              = "../database/hospital_doctors/doctors.sql"
+    "doctor_assignments.sql"   = "../database/hospital_doctors/doctor_assignments.sql"
+    "doctors_sample_data.sql"  = "../database/hospital_doctors/doctors_sample_data.sql"
+    "diseases.sql"             = "../database/hospital_diseases/diseases.sql"
+    "diseases_sample_data.sql" = "../database/hospital_diseases/diseases_sample_data.sql"
+    "bills.sql"                = "../database/hospital_billing/bills.sql"
+    "payments.sql"             = "../database/hospital_billing/payments.sql"
+    "billing_sample_data.sql"  = "../database/hospital_billing/billing_sample_data.sql"
+    "laboratory.sql"           = "../database/hospital_lab/laboratory.sql"
+    "lab_sample_data.sql"      = "../database/hospital_lab/lab_sample_data.sql"
+    "pharmacy.sql"             = "../database/hospital_pharmacy/pharmacy.sql"
+    "pharmacy_sample_data.sql" = "../database/hospital_pharmacy/pharmacy_sample_data.sql"
+  }
+}
+
+resource "archive_file" "db_init_zip" {
+  type        = "zip"
+  output_path = "${path.module}/build/db-init.zip"
+
+  source {
+    content  = file("${path.module}/../backend/db-init-lambda/lambda_function.py")
+    filename = "lambda_function.py"
+  }
+
+  dynamic "source" {
+    for_each = local.db_init_sql
+    content {
+      content  = file("${path.module}/${source.value}")
+      filename = "sql/${source.key}"
+    }
+  }
+}
+
 # Generated only when var.jwt_secret is empty (e.g. a fresh clone with
 # no tfvars): keeps `terraform plan` prompt-free without committing a
 # real secret to git. The value lives only in Terraform state.
@@ -386,6 +426,44 @@ resource "aws_lambda_function" "service" {
     })
   }
   tags = local.tags
+}
+
+# Database initialisation Lambda: creates the 6 databases, their tables
+# and the sample data. It has no API route — Terraform invokes it after
+# the RDS instances exist, and the CI/CD pipeline invokes it after every
+# deploy, so a fresh environment never needs a manual SQL step.
+resource "aws_lambda_function" "db_init" {
+  function_name    = "${var.project_name}-db-init-service"
+  runtime          = "python3.11"
+  handler          = "lambda_function.lambda_handler"
+  role             = aws_iam_role.lambda.arn
+  filename         = archive_file.db_init_zip.output_path
+  source_code_hash = archive_file.db_init_zip.output_base64sha256
+  layers           = [aws_lambda_layer_version.deps.arn]
+  memory_size      = 256
+  timeout          = 300
+
+  vpc_config {
+    subnet_ids         = aws_subnet.private[*].id
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
+  environment {
+    variables = local.common_env
+  }
+  tags = local.tags
+}
+
+# Runs the db-init Lambda once the RDS instances exist. Re-runs
+# automatically when the init code or SQL changes (the input hash
+# changes); the init itself is idempotent, so re-running is always safe.
+resource "aws_lambda_invocation" "db_init" {
+  function_name = aws_lambda_function.db_init.function_name
+  input = jsonencode({
+    source   = "terraform"
+    code_sha = archive_file.db_init_zip.output_base64sha256
+  })
+  depends_on = [aws_db_instance.hospital]
 }
 
 # ============================================================

@@ -148,7 +148,26 @@ created in parallel).
 > `/pharmacy` API resources first, or the apply will hit name
 > conflicts.
 
-## STEP 4 — Initialise the 6 Databases
+## STEP 4 — Initialise the 6 Databases (automatic)
+No manual SQL step is needed anymore. A `hospital-db-init-service` Lambda
+runs the schema + sample-data files for all 6 databases:
+
+- **`terraform apply`** invokes it automatically once the RDS instances
+  exist (and again whenever the init code or SQL changes).
+- **Every CI/CD deploy** runs it too (the pipeline creates the function
+  if Terraform has not yet, then invokes it), so an existing account's
+  empty databases are filled on the next push to `main`.
+
+The init is idempotent — re-running it only skips tables/rows that already
+exist — and the pipeline's smoke test then verifies `GET /patients`
+returns 200, so a failed init is caught in CI, not in the browser.
+
+Expected result: 5 patients, 5 doctors, 5 diseases, 5 bills,
+3 payments, 6 lab orders, 6 prescriptions.
+
+<details>
+<summary>Manual fallback (only if the automatic init ever fails)</summary>
+
 Each database has its OWN RDS endpoint — get them all from Terraform:
 ```bash
 terraform output rds_endpoints
@@ -177,10 +196,8 @@ mysql -h <billing-endpoint>  -u admin -p < database/hospital_billing/billing_sam
 mysql -h <lab-endpoint>      -u admin -p < database/hospital_lab/lab_sample_data.sql
 mysql -h <pharmacy-endpoint> -u admin -p < database/hospital_pharmacy/pharmacy_sample_data.sql
 ```
-Expected result: 5 patients, 5 doctors, 5 diseases, 5 bills,
-3 payments, 6 lab orders, 6 prescriptions. See `docs/MANUAL_DEPLOY.md`
-for the full ordered schema list.
-
+See `docs/MANUAL_DEPLOY.md` for the full ordered schema list.
+</details>
 ## STEP 5 — Wire the Frontend to API Gateway
 ```bash
 API=$(terraform output -raw api_gateway_url)
