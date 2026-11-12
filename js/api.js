@@ -5,7 +5,7 @@
 
 const API_BASE_URL = window.HMS_CONFIG?.apiBase ||
   (() => { try { return localStorage.getItem("hms_api_base"); } catch (e) { return null; } })() ||
-  "https://abc123.execute-api.us-east-1.amazonaws.com/prod";
+  "https://riiag2wbsf.execute-api.us-east-1.amazonaws.com/prod";
 
 /** Simple JWT-like token stored in localStorage after login */
 function getToken() {

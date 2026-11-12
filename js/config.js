@@ -1,1 +1,1 @@
-window.HMS_CONFIG = { apiBase: "https://abc123.execute-api.us-east-1.amazonaws.com/prod" };
+window.HMS_CONFIG = { apiBase: "https://riiag2wbsf.execute-api.us-east-1.amazonaws.com/prod" };
